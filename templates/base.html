@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+    <title>EasyPay</title>
+</head>
+<body>
+      <script src = "https://code.jquery.com/jquery.js"></script>
+
+Easy Pay
+
+{% if "user_id" in session %}
+    <a href="/logout">Logout</a>
+{% else %}
+    <a href="/register">Login</a>
+{% endif %}
+
+<hr>
+
+{% for flash in get_flashed_messages() %}
+  {{ flash }}
+{% endfor %}
+
+{% block content %}
+    Put your body here.
+{% endblock %}
+
+</body>
+</html>
