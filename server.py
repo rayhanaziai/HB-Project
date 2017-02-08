@@ -4,7 +4,9 @@ from flask import Flask, render_template, request, flash, redirect, session
 from flask_debugtoolbar import DebugToolbarExtension
 
 from model import connect_to_db, db
-
+import urllib
+import requests
+import os 
 
 app = Flask(__name__)
 
@@ -62,6 +64,32 @@ def payment_process():
 
     return render_template('token-created.html')
 
+
+@app.route('/stripe')
+def stripe_connect():
+
+    return render_template('stripe-connect.html')
+
+
+@app.route('/confirm-payment')
+def show_status():
+
+    code = request.args.get("code")
+    data = {"grant_type": "authorization_code",
+            "client_id": 'ca_A4Vr96Npe5T3IVSo4B9JemS3oN4b2y8I',
+            "client_secret": 'sk_test_uXpQmqM8CWnoWDgkKQJUFcDZ',
+            "code": code
+            }
+    r = requests.post('https://connect.stripe.com/oauth/token', params=data)
+    token = r.json().get('access_token')
+    print "****THE TOKEN****", token
+
+    return render_template('confirm-payment.html', token=token)
+
+@app.route('/status')
+def confirm_payment():
+
+    render_template
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the point
