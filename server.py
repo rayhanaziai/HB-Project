@@ -82,14 +82,29 @@ def show_status():
             }
     r = requests.post('https://connect.stripe.com/oauth/token', params=data)
     token = r.json().get('access_token')
-    print "****THE TOKEN****", token
+    print "****THE T OKEN****", token
 
     return render_template('confirm-payment.html', token=token)
+
+
+@app.route('/confirm-payment-paypal')
+def show_status():
+
+    data = {"grant_type":"client_credentials"}
+
+    headers = {"Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": "Basic QWZpWEhaUWM1U0R4d2RMNlBoNmY2RVpacFZXcVlmcnVRWDdqRkJDLU4xTngwNVYzY0RKNm9sbzNJRGlZaVVrbmowRXhnMWVCeE04WDhRemY6RUFyR294dnNsUmxtRElJaWdEWlloWWZtVUJxaWt4eW5HTnpfckd6c29qTDYzanZnNFZXOUFOVUJWb3l4QmZPZUp2SVlNbzZjU2J4TjY5dHg="}
+    r = requests.post('https://api.sandbox.paypal.com/v1/oauth2/token', headers=headers, params=data)
+    token = r.json().get("access_token")
+    print 'TOKEN:', token
+
+    return render_template('confirm-payment.html')
+
 
 @app.route('/status')
 def confirm_payment():
 
-    render_template
+    return render_template('status.html')
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the point
