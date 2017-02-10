@@ -1,11 +1,4 @@
-"""Models and database functions for Ratings project."""
-
 from flask_sqlalchemy import SQLAlchemy
-
-# This is the connection to the PostgreSQL database; we're getting
-# this through the Flask-SQLAlchemy helper library. On this, we can
-# find the `session` object, where we do most of our interactions
-# (like committing, etc.)
 
 db = SQLAlchemy()
 
@@ -21,10 +14,14 @@ class User(db.Model):
     user_id = db.Column(db.Integer,
                         autoincrement=True,
                         primary_key=True)
-    email = db.Column(db.String(64), nullable=True)
-    password = db.Column(db.String(64), nullable=True)
-    age = db.Column(db.Integer, nullable=True)
-    zipcode = db.Column(db.String(15), nullable=True)
+    fullname = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(64), nullable=False)
+    password = db.Column(db.String(64), nullable=False)
+    account_id = db.Column(db.String(300), nullable=True)
+    secret_key = db.Column(db.String(300), nullable=True)
+    payer_receiver = db.Column(db.String(20), nullable=False)
+
+    transactions = db.relationship("Transaction")
 
     def __repr__(self):
         """Provide helpful representation when printed."""
@@ -33,43 +30,32 @@ class User(db.Model):
                                                self.email)
 
 
-class Movie(db.Model):
+class Transaction(db.Model):
     """Movie on ratings website."""
 
-    __tablename__ = "movies"
+    __tablename__ = "transactions"
 
-    movie_id = db.Column(db.Integer,
-                         autoincrement=True,
-                         primary_key=True)
-    title = db.Column(db.String(100))
-    released_at = db.Column(db.DateTime)
-    imdb_url = db.Column(db.String(200))
+    transaction_id = db.Column(db.Integer,
+                               autoincrement=True,
+                               primary_key=True)
+    buyer_id = db.Column(db.String,
+                         db.ForeignKey('users.user.id'))
+    seller_id = db.Column(db.String,
+                          db.ForeignKey('users.user.id'))
+    charge_id = db.Column(db.String(300), nullable=True)
+    is_signed = db.Column(db.Boolean, nullable=False)
+    payment_recieved = db.Column(db.Boolean, nullable=True)
+    date = db.Column(db.DateTime, nullable=True)
+    amount = db.Column(db.Integer, nullable=True)
+    currency = db.Column(db.String(3), nullable=True)
 
-    def __repr__(self):
-        """Provide helpful representation when printed."""
-
-        return "<Movie movie_id=%s title=%s>" % (self.movie_id,
-                                                 self.title)
-
-
-class Rating(db.Model):
-    """Rating of a movie by a user."""
-
-    __tablename__ = "ratings"
-
-    rating_id = db.Column(db.Integer,
-                          autoincrement=True,
-                          primary_key=True)
-    movie_id = db.Column(db.Integer)
-    user_id = db.Column(db.Integer)
-    score = db.Column(db.Integer)
+    users = db.relationship("User")
 
     def __repr__(self):
         """Provide helpful representation when printed."""
 
-        s = "<Rating rating_id=%s movie_id=%s user_id=%s score=%s>"
-        return s % (self.rating_id, self.movie_id, self.user_id,
-                    self.score)
+        return "<Transaction transaction_id=%s is_signed=%s>" % (self.transaction_id,
+                                                                 self.is_signed)
 
 
 #####################################################################
@@ -79,7 +65,7 @@ def connect_to_db(app):
     """Connect the database to our Flask app."""
 
     # Configure to use our PostgreSQL database
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///ratings'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///easypay'
     db.app = app
     db.init_app(app)
 
@@ -89,6 +75,6 @@ if __name__ == "__main__":
     # leave you in a state of being able to work with the database
     # directly.
 
-    from server import app
+    from serverPP import app
     connect_to_db(app)
     print "Connected to DB."
