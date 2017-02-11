@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<br>
+<div class="well spaced" style="width:97%">
+  <h2>{{ user.fullname }}</h2>
+  <h3>({{ user.payer_seller }})</h3>
+</div>
+<div class="table">
+    <table style="width:100%">
+      <tr>
+        <th>Transaction ID</th>
+        <th>Recipient</th> 
+        <th>Payment Date</th>
+        <th>Amount</th>
+        <th>Status</th>
+      </tr>
+      {% if transactions != [] %}
+          {% for transaction in transactions %}
+              <tr>
+                <td>{{ transaction.transaction_id }}</td>
+                <td>{{ transaction.seller_id }}</td>
+                <td>{{ transaction.date }}</td>
+                <td>{{ transaction.amount }}</td>
+                <td>{{ transaction.status }}</td>
+              </tr>
+          {% endfor %}
+      {% else %}
+      <div id='no_trans'>
+          <td>You currently have no transactions!</td>
+      </div>
+      {% endif %}
+
+    </table>
+</div>
+<br>
+<a href="/terms/{{ user.user_id}}" class="contract-button"><span>Create a transaction</span></a>
+
+{% endblock %}
