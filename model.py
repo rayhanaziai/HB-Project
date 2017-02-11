@@ -19,9 +19,10 @@ class User(db.Model):
     password = db.Column(db.String(64), nullable=False)
     account_id = db.Column(db.String(300), nullable=True)
     secret_key = db.Column(db.String(300), nullable=True)
-    payer_receiver = db.Column(db.String(20), nullable=False)
+    payer_seller = db.Column(db.String(20), nullable=False)
 
-    transactions = db.relationship("Transaction")
+    # transaction = db.relationship("Transaction",
+    #                               backref=db.backref("users", order_by=user_id))
 
     def __repr__(self):
         """Provide helpful representation when printed."""
@@ -38,18 +39,17 @@ class Transaction(db.Model):
     transaction_id = db.Column(db.Integer,
                                autoincrement=True,
                                primary_key=True)
-    buyer_id = db.Column(db.String,
-                         db.ForeignKey('users.user.id'))
-    seller_id = db.Column(db.String,
-                          db.ForeignKey('users.user.id'))
+    payer_id = db.Column(db.Integer,
+                         db.ForeignKey('users.user_id'))
+    seller_id = db.Column(db.Integer,
+                          db.ForeignKey('users.user_id'))
     charge_id = db.Column(db.String(300), nullable=True)
     is_signed = db.Column(db.Boolean, nullable=False)
     payment_recieved = db.Column(db.Boolean, nullable=True)
     date = db.Column(db.DateTime, nullable=True)
     amount = db.Column(db.Integer, nullable=True)
     currency = db.Column(db.String(3), nullable=True)
-
-    users = db.relationship("User")
+    status = db.Column(db.String(30), nullable=False)
 
     def __repr__(self):
         """Provide helpful representation when printed."""

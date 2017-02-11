@@ -3,7 +3,7 @@ from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session
 from flask_debugtoolbar import DebugToolbarExtension
 
-from model import connect_to_db, db
+from model import connect_to_db, db, User, Transaction
 import urllib
 import requests
 import os
@@ -21,11 +21,13 @@ app.secret_key = "MYSECRETKEY"
 app.jinja_env.undefined = StrictUndefined
 stripe.api_key = "sk_test_uXpQmqM8CWnoWDgkKQJUFcDZ"
 
+
 @app.route('/')
 def index():
     """Homepage."""
 
     return render_template("homepage.html")
+
 
 @app.route('/register', methods=['GET'])
 def register_form():
@@ -42,15 +44,18 @@ def register_process():
     fullname = request.form.get("fullname")
     email = request.form.get("email")
     password = request.form.get("password")
-    country = request.form.get("country")
+    payer_seller = request.form.get("payer_or_receiver")
 
-    # new_user = User(email=email, password=password, age=age, zipcode=zipcode)
+    new_user = User(fullname=fullname, email=email, password=password, payer_seller=payer_seller)
 
-    # db.session.add(new_user)
-    # db.session.commit()
+    db.session.add(new_user)
+    db.session.commit()
 
-    # flash("User %s added." % email)
-    return redirect("/")
+    flash("User %s added." % fullname)
+
+    session["user_id"] = new_user.user_id
+    session["payer_seller"] = new_user.payer_seller
+    return redirect("/homepage/%s" % new_user.user_id)
 
 @app.route('/login', methods=['GET'])
 def login_form():
@@ -66,20 +71,41 @@ def login_process():
     email = request.form["email"]
     password = request.form["password"]
 
-    # user = User.query.filter_by(email=email).first()
+    user = User.query.filter_by(email=email).first()
 
-    # if not user:
-    #     flash("No such user")
-    #     return redirect("/login")
+    if not user:
+        flash("No such user")
+        return redirect("/login")
 
-    # if user.password != password:
-    #     flash("Incorrect password")
-    #     return redirect("/login")
+    if user.password != password:
+        flash("Incorrect password")
+        return redirect("/login")
 
-    # session["user_id"] = user.user_id
+    session["user_id"] = user.user_id
+    session["payer_seller"] = user.payer_seller
 
-    # flash("Logged in")
-    # return redirect("/users/%s" % user.user_id)
+    flash("Logged in")
+    return redirect("/homepage/%s" % user.user_id)
+
+# @app.route('/homepage/')
+# def personalisedview():
+
+
+@app.route("/homepage/<int:user_id>")
+def user_detail(user_id):
+    """Show info about user."""
+
+    user = User.query.get(user_id)
+    transactions = Transaction.query.filter(Transaction.payer_id == user_id).all()
+    return render_template("userpage.html", user=user, transactions=transactions)
+
+@app.route("/terms/<int:user_id>")
+def transaction_form(user_id):
+
+    user = User.query.get(user_id)
+    transactions = Transaction.query.filter(Transaction.payer_id == user_id).all()
+    return render_template("transaction-form.html", user=user, transactions=transactions)
+
 
 
 @app.route('/logout')
