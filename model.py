@@ -45,11 +45,11 @@ class Transaction(db.Model):
                           db.ForeignKey('users.user_id'))
     charge_id = db.Column(db.String(300), nullable=True)
     is_signed = db.Column(db.Boolean, nullable=False)
-    payment_recieved = db.Column(db.Boolean, nullable=True)
+    payment_received = db.Column(db.Boolean, nullable=True)
     date = db.Column(db.DateTime, nullable=True)
     amount = db.Column(db.Integer, nullable=True)
     currency = db.Column(db.String(3), nullable=True)
-    status = db.Column(db.String(30), nullable=False)
+    status = db.Column(db.String(50), nullable=False)
 
     def __repr__(self):
         """Provide helpful representation when printed."""

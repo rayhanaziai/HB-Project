@@ -10,6 +10,7 @@ import os
 import paypalrestsdk
 import stripe
 import json
+import datetime
 
 app = Flask(__name__)
 
@@ -63,6 +64,7 @@ def login_form():
 
     return render_template("login_form.html")
 
+
 @app.route('/login', methods=['POST'])
 def login_process():
     """Process login."""
@@ -87,17 +89,56 @@ def login_process():
     flash("Logged in")
     return redirect("/homepage/%s" % user.user_id)
 
-# @app.route('/homepage/')
-# def personalisedview():
+
+@app.route('/logout')
+def logout():
+    """Log out."""
+
+    del session["user_id"]
+    flash("Logged Out.")
+    return redirect("/")
 
 
-@app.route("/homepage/<int:user_id>")
-def user_detail(user_id):
+@app.route("/homepage/<int:user_id>", methods=['GET'])
+def status(user_id):
     """Show info about user."""
 
     user = User.query.get(user_id)
-    transactions = Transaction.query.filter(Transaction.payer_id == user_id).all()
-    return render_template("userpage.html", user=user, transactions=transactions)
+
+    if user.payer_seller == "payer":
+        transactions = Transaction.query.filter(Transaction.payer_id == user_id).all()
+        completed_transactions = Transaction.query.filter(Transaction.payer_id == user_id, Transaction.status == "completed").all()
+        pending_transactions = Transaction.query.filter(Transaction.payer_id == user_id, Transaction.status != "completed").all()
+    else:
+        transactions = Transaction.query.filter(Transaction.seller_id == user_id).all()
+        completed_transactions = Transaction.query.filter(Transaction.seller_id == user_id, Transaction.status == "completed").all()
+        pending_transactions = Transaction.query.filter(Transaction.seller_id == user_id, Transaction.status != "completed").all()
+
+    return render_template("userpage.html",
+                           user=user,
+                           transactions=transactions,
+                           completed_transactions=completed_transactions,
+                           pending_transactions=pending_transactions)
+
+
+@app.route("/homepage/<int:user_id>", methods=['POST'])
+def process_acceptance(user_id):
+    """Change status of transaction depending on seller acceptance"""
+
+    acceptance = request.form.get("agree_or_disagree")
+
+    transaction_id = session["transaction"]
+    current_transaction = Transaction.query.get(transaction_id)
+
+    if acceptance == "agree":
+        current_transaction.status = "Awaiting payment from payer"
+    else:
+        current_transaction.status = "Declined by seller"
+    db.session.commit()
+
+    # At this stage an email is sent to the buyer with prompt to pay.
+    return redirect("/homepage/%s" % user_id)
+
 
 @app.route("/terms/<int:user_id>")
 def transaction_form(user_id):
@@ -107,14 +148,58 @@ def transaction_form(user_id):
     return render_template("transaction-form.html", user=user, transactions=transactions)
 
 
+@app.route("/terms/<int:user_id>", methods=['POST'])
+def approval_process(user_id):
+    """Process approval."""
 
-@app.route('/logout')
-def logout():
-    """Log out."""
+    # Get form variables
+    seller_email = request.form.get("seller_email")
+    seller_name = request.form.get("seller_name")
+    date = request.form.get("date")
+    amount = request.form.get("amount")
+    currency = request.form.get("currency")
 
-    del session["user_id"]
-    flash("Logged Out.")
-    return redirect("/")
+    date = datetime.datetime.strptime(date, "%Y-%m-%d")
+
+    # The recipient is added to the database
+    new_seller = User(fullname=seller_name, email=seller_email, password=0000, payer_seller="Seller")
+    
+    # At this point an email is sent to the seller to log in and view the contract"""
+
+    db.session.add(new_seller)
+    db.session.commit()
+
+    seller = User.query.filter_by(email=seller_email).first()
+    seller_id = seller.user_id
+
+    # The new transaction is created in the database
+    new_transaction = Transaction(payer_id=user_id,
+                                  seller_id=seller_id,
+                                  is_signed=False,
+                                  payment_received=False,
+                                  date=date,
+                                  amount=amount,
+                                  currency=currency,
+                                  status="pending approval from seller")
+
+    db.session.add(new_transaction)
+    db.session.commit()
+
+    user = User.query.get(user_id)
+
+    flash("Approval prompt sent to the recipient")
+    # return redirect("/homepage")
+    return redirect("/homepage/%s" % user.user_id)
+    # return "hello"
+
+
+@app.route("/approved-form/<int:transaction_id>")
+def show_approved_form(transaction_id):
+
+    transaction = Transaction.query.get(transaction_id)
+    user_id = session["user_id"]
+    session["transaction"] = transaction_id
+    return render_template('approved-contract.html', transaction=transaction, user_id=user_id)
 
 
 @app.route('/payment')

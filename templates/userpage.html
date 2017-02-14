@@ -5,7 +5,46 @@
   <h2>{{ user.fullname }}</h2>
   <h3>({{ user.payer_seller }})</h3>
 </div>
-<div class="table">
+<br>
+<h3>Pending Transactions</h3>
+<div class="table pending">
+    <table style="width:100%">
+      <tr>
+        <th>Transaction ID</th>
+        <th>Recipient</th> 
+        <th>Payment Date</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+      {% if pending_transactions != [] %}
+          {% for transaction in pending_transactions %}
+              <tr>
+                <td>{{ transaction.transaction_id }}</td>
+                <td>{{ transaction.seller_id }}</td>
+                <td>{{ transaction.date }}</td>
+                <td>{{ transaction.amount }}</td>
+                <td>{{ transaction.status }}</td>
+                {% if transaction.status == "pending approval from payer" and user.payer_seller == "payer" %}
+                    <td><a href="/terms/{{ user.user_id }}" class="contract-button"><span>View Contract</span></a></td>
+                {% elif transaction.status == "pending approval from seller" and user.payer_seller == "seller" %}
+                    <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>View and approve contract</span></a></td>
+                {% else %}
+                    <td>No action</td>
+                {% endif %}
+              </tr>
+          {% endfor %}
+      {% else %}
+      <div id='no_trans'>
+          <td>You currently have no pending transactions!</td>
+      </div>
+      {% endif %}
+
+    </table>
+</div>
+<br><br>
+<h3>Completed Transactions</h3>
+<div class="table completed">
     <table style="width:100%">
       <tr>
         <th>Transaction ID</th>
@@ -14,19 +53,19 @@
         <th>Amount</th>
         <th>Status</th>
       </tr>
-      {% if transactions != [] %}
-          {% for transaction in transactions %}
-              <tr>
-                <td>{{ transaction.transaction_id }}</td>
-                <td>{{ transaction.seller_id }}</td>
-                <td>{{ transaction.date }}</td>
-                <td>{{ transaction.amount }}</td>
-                <td>{{ transaction.status }}</td>
-              </tr>
-          {% endfor %}
+      {% if completed_transactions != [] %}
+              {% for transaction in completed_transactions %}
+                  <tr>
+                    <td>{{ transaction.transaction_id }}</td>
+                    <td>{{ transaction.seller_id }}</td>
+                    <td>{{ transaction.date }}</td>
+                    <td>{{ transaction.amount }}</td>
+                    <td>{{ transaction.status }}</td>
+                  </tr>
+              {% endfor %}
       {% else %}
       <div id='no_trans'>
-          <td>You currently have no transactions!</td>
+          <td>You have no completed transactions!</td>
       </div>
       {% endif %}
 
