@@ -11,6 +11,7 @@ import paypalrestsdk
 import stripe
 import json
 import datetime
+from sqlalchemy.exc import InvalidRequestError
 
 app = Flask(__name__)
 
@@ -103,12 +104,14 @@ def logout():
 def status(user_id):
     """Show info about user."""
 
+    user_id = session["user_id"]
     user = User.query.get(user_id)
-
-    if user.payer_seller == "payer":
+    print "peyer_seller", user.payer_seller
+    if user.payer_seller == "Payer":
         transactions = Transaction.query.filter(Transaction.payer_id == user_id).all()
         completed_transactions = Transaction.query.filter(Transaction.payer_id == user_id, Transaction.status == "completed").all()
         pending_transactions = Transaction.query.filter(Transaction.payer_id == user_id, Transaction.status != "completed").all()
+        print "Pending:", pending_transactions
     else:
         transactions = Transaction.query.filter(Transaction.seller_id == user_id).all()
         completed_transactions = Transaction.query.filter(Transaction.seller_id == user_id, Transaction.status == "completed").all()
@@ -131,9 +134,9 @@ def process_acceptance(user_id):
     current_transaction = Transaction.query.get(transaction_id)
 
     if acceptance == "agree":
-        current_transaction.status = "Awaiting payment from payer"
+        current_transaction.status = "awaiting payment from payer"
     else:
-        current_transaction.status = "Declined by seller"
+        current_transaction.status = "declined by seller"
     db.session.commit()
 
     # At this stage an email is sent to the buyer with prompt to pay.
@@ -202,14 +205,44 @@ def show_approved_form(transaction_id):
     return render_template('approved-contract.html', transaction=transaction, user_id=user_id)
 
 
-@app.route('/payment')
-def payment_form():
+@app.route('/payment/<int:transaction_id>')
+def payment_form(transaction_id):
 
-    return render_template('payment-form.html')
+    return render_template('payment-form.html', transaction_id=transaction_id)
 
 
-@app.route('/payment-processed', methods=['POST'])
-def payment_process():
+@app.route('/payment/<int:transaction_id>', methods=['POST'])
+def payment_process(transaction_id):
+
+    token = request.form.get("stripeToken")
+
+    transfer = Transaction.query.get(transaction_id)
+    payer_id = transfer.payer_id
+    seller_id = transfer.seller_id
+    seller_email = User.query.get(seller_id).email
+    amount = transfer.amount*100
+    currency = transfer.currency
+    date = transfer.date
+    description = "payment from %d to %d" % (payer_id, seller_id)
+
+    # Any way to check if this payment causes error?
+    stripe.Charge.create(
+        amount=amount,
+        currency=currency,
+        source=token,
+        description=description
+        )
+
+    # As soon as payment is successfull, stripe account set up for seller.
+    try:
+        stripe.Account.create(
+            country="US",
+            managed=False,
+            email=seller_email
+            )
+    except InvalidRequestError:
+        flash("Seller has strip account")
+
 
     """PROCESS FOR SELLER"""
 
@@ -248,8 +281,9 @@ def payment_process():
     # )
 
     print "***the token is", token
-
-    return render_template('token-created.html')
+#
+    # return redirect("/homepage/%s" % user_id))
+    return render_template("token-created.html")
 
 @app.route('/seller-transfer', methods=['POST'])
 def spayment_process():

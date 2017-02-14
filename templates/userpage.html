@@ -25,10 +25,12 @@
                 <td>{{ transaction.date }}</td>
                 <td>{{ transaction.amount }}</td>
                 <td>{{ transaction.status }}</td>
-                {% if transaction.status == "pending approval from payer" and user.payer_seller == "payer" %}
+                {% if transaction.status == "pending approval from payer" and user.payer_seller == "Payer" %}
                     <td><a href="/terms/{{ user.user_id }}" class="contract-button"><span>View Contract</span></a></td>
-                {% elif transaction.status == "pending approval from seller" and user.payer_seller == "seller" %}
+                {% elif transaction.status == "pending approval from seller" and user.payer_seller == "Seller" %}
                     <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>View and approve contract</span></a></td>
+                {% elif transaction.status == "awaiting payment from payer" and user.payer_seller == "Payer" %}
+                    <td><a href="/payment/{{ transaction.transaction_id }}" class="contract-button"><span>Pay funds to Easy Pay</span></a></td>
                 {% else %}
                     <td>No action</td>
                 {% endif %}
