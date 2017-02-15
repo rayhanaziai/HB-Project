@@ -31,6 +31,8 @@
                     <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>View and approve contract</span></a></td>
                 {% elif transaction.status == "awaiting payment from payer" and user.payer_seller == "Payer" %}
                     <td><a href="/payment/{{ transaction.transaction_id }}" class="contract-button"><span>Pay funds to Easy Pay</span></a></td>
+                {% elif transaction.status == "payment to seller scheduled" and user.payer_seller == "Seller" %}
+                    <td><a href="https://connect.stripe.com/oauth/authorize?response_type=code&client_id=ca_A4Vr96Npe5T3IVSo4B9JemS3oN4b2y8I&scope=read_write" class="stripe-connect dark"><span>Connect with Stripe</span></a></td>
                 {% else %}
                     <td>No action</td>
                 {% endif %}

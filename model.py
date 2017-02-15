@@ -30,6 +30,12 @@ class User(db.Model):
         return "<User user_id=%s email=%s>" % (self.user_id,
                                                self.email)
 
+    @classmethod
+    def new_user(cls):
+        # u = 
+        # return u
+        pass
+
 
 class Transaction(db.Model):
     """Movie on ratings website."""
