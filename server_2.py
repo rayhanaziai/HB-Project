@@ -122,7 +122,7 @@ def status(user_id):
         transaction_filter = Transaction.seller_id == user_id
 
     transactions = Transaction.query.filter(transaction_filter).all()
-    
+
     completed_transactions = Transaction.query.filter(
         transaction_filter, Transaction.status == "completed").all()
 
@@ -218,6 +218,38 @@ def show_approved_form(transaction_id):
     session["transaction"] = transaction_id
     return render_template('approved-contract.html', transaction=transaction, user_id=user_id)
 
+@app.route('/accounts/<int:transaction_id>', methods=['GET'])
+def account_form(transaction_id):
+
+    return render_template('account-details-form.html', transaction_id=transaction_id)
+
+@app.route('/accounts/<int:transaction_id>', methods=['POST'])
+def account_process(transaction_id):
+
+    name = request.form.get("name")
+    routing_number = request.form.get("routing-number")
+    account_number = request.form.get("account-number")
+
+    response = stripe.Token.create(
+        bank_account={
+            "country": 'US',
+            "currency": 'usd',
+            "account_holder_name": name,
+            "account_holder_type": 'individual',
+            "routing_number": routing_number,
+            "account_number": account_number
+      },
+    )
+
+    account_id = response.to_dict()['bank_account']['id']
+    account_token = response.to_dict()['id']
+    user_id = session['user_id']
+    User.query.get(user_id).account_id = str(account_id)
+    db.session.commit()
+    print "ACCOUNT_ID:", account_id
+    print "ACCOUNT_TOKEN", account_token
+
+    return redirect(("/homepage/%s" % user_id))
 
 @app.route('/payment/<int:transaction_id>')
 def payment_form(transaction_id):
@@ -247,6 +279,7 @@ def payment_process(transaction_id):
         description=description
         )
 
+    charge_id = charge.to_dict()['id']
     if charge.to_dict()['paid'] != True:
         flash("Your payment has not gone through. Please try again.")
     else:
@@ -255,88 +288,67 @@ def payment_process(transaction_id):
 
         # As soon as payment is successfull, stripe account set up for seller.
         try:
-            stripe.Account.create(
+            create_account = stripe.Account.create(
                 country="US",
-                managed=False,
+                managed=True,
                 email=seller_email
                 )
+
+            account_id = create_account.to_dict()['id']
+            s_key = create_account.to_dict()['keys']['secret']
+
+            User.query.get(seller_id).account_id = account_id
+            User.query.get(secret_id).secret_key = s_key
+
+            stripe.Customer.create(
+                email=seller_email,
+                api_key=s_key)
+
+            stripe.Transfer.create(
+                amount=amount,
+                currency=currency,
+                destination=account_id,
+                description=description)
+
         except stripe.InvalidRequestError as e:
             flash(e.message)
-        #     # send email to seller telling them to put their details in stripe
+            # send email to seller telling them to put their details in stripe
 
-
-    """PROCESS FOR SELLER"""
-
-    """Creates customer account and sends an email to the email automatically"""
-    # seller = stripe.Account.create(
-    #     country="US",
-    #     managed=False,
-    #     email='rayhanaziai@gmail.com'
-    # )
-    # """add this to database"""
-    # seller = seller.to_dict()
-    # account_number = seller["id"]
-    # seller_keys = seller["keys"]
-    # seller_keys = seller_keys.to_dict()
-    # seller_s_key = seller_keys["secret"]
-
-
-    # create_seller = stripe.Customer.create (
-    #     email='jdg9843@gmail.com',
-    #     api_key=seller_s_key
-    # )
-
-
-
-    token = request.form.get("stripeToken")
-    # customer = stripe.Customer.create(
-    #     email="buyertest@example.com",
-    #     source=token,
-    # )
-
-    # requests.post
-    # charge = stripe.Charge.create(
-    #     amount=1000,
-    #     currency="usd",
-    #     customer=customer.id,
-    # )
 
     print "***the token is", token
-#
-    # return redirect("/homepage/%s" % user_id))
-    return render_template("token-created.html")
+    return redirect("/homepage/%s" % (payer_id))
 
 
-@app.route('/authorize')
-def authorize():
-    site = app.config['SITE'] + app.config['AUTHORIZE_URI']
-    params = {
-        "response_type": "code",
-        "scope": "read_write",
-        "client_id": app.config['CLIENT_ID']
-    }
-    url = site + '?' + urllib.urlencode(params)
-    return redirect(url)
+# @app.route('/authorize')
+# def authorize():
+#     site = app.config['SITE'] + app.config['AUTHORIZE_URI']
+#     params = {
+#         "response_type": "code",
+#         "scope": "read_write",
+#         "client_id": app.config['CLIENT_ID']
+#     }
+#     url = site + '?' + urllib.urlencode(params)
+#     return redirect(url)
 
 
-@app.route("/backfromstripe")
-def anything():
-    code = request.args.get('code')
-    data = {
-            "grant_type": "authorization_code",
-            "client_id": app.config['CLIENT_ID'],
-            "client_secret": app.config['API_KEY'],
-            "code": code
-  }
+# @app.route("/backfromstripe")
+# def anything():
+#     code = request.args.get('code')
+#     data = {
+#             "grant_type": "authorization_code",
+#             "client_id": app.config['CLIENT_ID'],
+#             "client_secret": app.config['API_KEY'],
+#             "code": code
+#   }
 
-    # Make /oauth/token endpoint POST request
-    url = app.config['SITE'] + app.config['TOKEN_URI']
-    resp = requests.post(url, params=data)
+#     # Make /oauth/token endpoint POST request
+#     url = app.config['SITE'] + app.config['TOKEN_URI']
+#     resp = requests.post(url, params=data)
 
-    # Grab access_token (use this as your user's API key)
-    token = resp.json().get('access_token')
-    print '****** TOKEN=', token
-    return render_template('callback.html', token=token)
+#     # Grab access_token (use this as your user's API key)
+#     token = resp.json().get('access_token')
+#     print '****** TOKEN=', token
+#     return render_template('callback.html', token=token)
 
 
 @app.route('/seller-transfer', methods=['POST'])

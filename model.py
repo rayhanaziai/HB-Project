@@ -81,6 +81,6 @@ if __name__ == "__main__":
     # leave you in a state of being able to work with the database
     # directly.
 
-    from serverPP import app
+    from server_2 import app
     connect_to_db(app)
     print "Connected to DB."
