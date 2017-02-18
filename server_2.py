@@ -13,11 +13,6 @@ import datetime
 # from sqlalchemy.exc import InvalidRequestError
 
 app = Flask(__name__)
-mail = Mail(app)
-app.config.from_pyfile('secrets.sh')
-app.config['SITE'] = 'https://connect.stripe.com'
-app.config['AUTHORIZE_URI'] = '/oauth/authorize'
-app.config['TOKEN_URI'] = '/oauth/token'
 # Required to use Flask sessions and the debug toolbar
 app.secret_key = "MYSECRETKEY"
 
@@ -145,9 +140,22 @@ def process_acceptance(user_id):
 
     transaction_id = session["transaction"]
     current_transaction = Transaction.query.get(transaction_id)
+    seller_user = User.query.get(user_id)
+    payer_user = User.query.get(current_transaction.payer_id)
 
     if acceptance == "agree":
         current_transaction.status = "awaiting payment from payer"
+        html = "<html><h2>Easy Pay</h2><br><p>Hi " + payer_user.fullname + ",</p><br>" + seller_user.fullname + " has approved your contract. Please<a href='http://localhost:5000/login'><span> log in </span></a>to make your payment to Easy Pay.<br><br> From the Easy Pay team!</html>"
+
+        requests.post(
+            "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
+            auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
+            data={"from": "rayhana.z@hotmail.com",
+                  "to": payer_user.email,
+                  "subject": "Contract approved!",
+                  "text": "Hi, Please sign into easy pay to view the contract and get paid",
+                  "html": html})
+
     else:
         current_transaction.status = "declined by seller"
     db.session.commit()
@@ -178,25 +186,33 @@ def approval_process(user_id):
     date = datetime.datetime.strptime(date, "%Y-%m-%d")
 
     # The recipient is added to the database
-    new_seller = User(fullname=seller_name, email=seller_email, password=0000, payer_seller="Seller")
+    # password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+    password = 0000
+    if User.query.filter_by(email=seller_email).all() == []:
+        new_seller = User(fullname=seller_name, email=seller_email, password=password, payer_seller="Seller")
+        db.session.add(new_seller)
+    else:
+        User.query.filter_by(email=seller_email).first().payer_seller = "Seller"
 
-    # At this point an email is sent to the seller to log in and view the contract"""
-    requests.post(
-        "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
-        auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
-        files=[("attachment", open("files/test.jpg")),
-               ("attachment", open("files/test.txt"))],
-        data={"from": "rayhana.z@hotmail.com",
-              "to": seller_email,
-              "subject": "Log in to Easy Pay",
-              "text": "Hi, Please sign into easy pay to view the contract and get paid",
-              "html": "<html>HTML version of the body</html>"})
-
-    db.session.add(new_seller)
     db.session.commit()
 
     seller = User.query.filter_by(email=seller_email).first()
     seller_id = seller.user_id
+    payer_id = session['user_id']
+    payer = User.query.get(payer_id)
+    payer_name = payer.fullname
+    # An email is sent to the seller to log in and view the contract
+
+    html = "<html><h2>Easy Pay</h2><br><p>Hi " + seller_name + ",</p><br>" + payer_name + " would like to send you money via Easy Pay. <br> Please<a href='http://localhost:5000/login'><span> log in </span></a> to view and accept the contract:<br>Password: " + str(password) + "<br><br> From the Easy Pay team!</html>"
+
+    requests.post(
+        "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
+        auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
+        data={"from": "rayhana.z@hotmail.com",
+              "to": seller_email,
+              "subject": "Log in to Easy Pay",
+              "text": "Hi, Please sign into easy pay to view the contract and get paid",
+              "html": html})
 
     # The new transaction is created in the database
     new_transaction = Transaction(payer_id=user_id,
@@ -211,18 +227,10 @@ def approval_process(user_id):
     db.session.add(new_transaction)
     db.session.commit()
 
-    user = User.query.get(user_id)
-
-    # email sent to seller
-    msg = Message("Hello",
-                  sender="rayhana.z@hotmail.com",
-                  recipients=[seller_email])
-    msg.body = "testing"
-    mail.send(msg)
 
     flash("Approval prompt sent to the recipient")
     # return redirect("/homepage")
-    return redirect("/homepage/%s" % user.user_id)
+    return redirect("/homepage/%s" % payer_id)
     # return "hello"
 
 
@@ -282,7 +290,9 @@ def payment_process(transaction_id):
             s_key = create_account.to_dict()['keys']['secret']
 
             User.query.get(seller_id).account_id = account_id
-            User.query.get(secret_id).secret_key = s_key
+            User.query.get(seller_id).secret_key = s_key
+
+            db.session.commit()
 
             stripe.Customer.create(
                 email=seller_email,
@@ -298,20 +308,9 @@ def payment_process(transaction_id):
             flash(e.message)
             # send email to seller telling them to put their details in stripe
 
-
     print "***the token is", token
     return redirect("/homepage/%s" % (payer_id))
 
-
-@app.route('/seller-transfer', methods=['POST'])
-def spayment_process():
-
-    trnsfer = stripe.Transfer.create(
-        amount=4200,
-        currency='usd',
-        source_transaction='id from charge',
-        destination='pull this from database'
-    )   
 
 
 if __name__ == "__main__":
