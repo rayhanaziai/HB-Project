@@ -23,14 +23,11 @@ class User(db.Model):
 
     # transaction = db.relationship("Transaction",
     #                               backref=db.backref("users", order_by=user_id))
-
     def __repr__(self):
         """Provide helpful representation when printed."""
 
         return "<User user_id=%s email=%s>" % (self.user_id,
                                                self.email)
-
-  
 
 
 class Transaction(db.Model):
@@ -52,6 +49,9 @@ class Transaction(db.Model):
     amount = db.Column(db.Integer, nullable=True)
     currency = db.Column(db.String(3), nullable=True)
     status = db.Column(db.String(50), nullable=False)
+
+    payer = db.relationship("User", foreign_keys=[payer_id])
+    seller = db.relationship("User", foreign_keys=[seller_id])
 
     def __repr__(self):
         """Provide helpful representation when printed."""
@@ -80,3 +80,4 @@ if __name__ == "__main__":
     from server_2 import app
     connect_to_db(app)
     print "Connected to DB."
+

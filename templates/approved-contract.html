@@ -24,13 +24,14 @@
     </div> 
 
     <br>
-    <form action="/homepage/{{ user_id }}" method="POST">
-        <label><br>
-            Agree <input type="checkbox" name="agree_or_disagree" value="agree"><br>
-            Disagree <input type="checkbox" name="agree_or_disagree" value="disagree">
-        </label>
-        <input type="submit" value="Submit" class="btn">
-    </form>
-
+    {% if payer_seller == "Seller" and transaction.status == "pending approval from seller" %}
+        <form action="/homepage/{{ user_id }}" method="POST">
+            <label><br>
+                Agree <input type="checkbox" name="agree_or_disagree" value="agree"><br>
+                Disagree <input type="checkbox" name="agree_or_disagree" value="disagree">
+            </label>
+            <input type="submit" value="Submit" class="btn">
+        </form>
+    {% endif %}
 </div>
 {% endblock %}

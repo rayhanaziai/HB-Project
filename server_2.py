@@ -1,15 +1,12 @@
 from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session
 from flask_debugtoolbar import DebugToolbarExtension
-from flask_mail import Mail, Message
 from model import connect_to_db, db, User, Transaction
-import urllib
 import requests
-import os
-import paypalrestsdk
 import stripe
 import json
 import datetime
+import os
 # from sqlalchemy.exc import InvalidRequestError
 
 app = Flask(__name__)
@@ -19,8 +16,9 @@ app.secret_key = "MYSECRETKEY"
 # Normally, if you use an undefined variable in Jinja2, it fails silently.
 # This is horrible. Fix this so that, instead, it raises an error.
 app.jinja_env.undefined = StrictUndefined
-stripe.api_key = "sk_test_uXpQmqM8CWnoWDgkKQJUFcDZ"
 
+# stripe.api_key = "sk_test_uXpQmqM8CWnoWDgkKQJUFcDZ"
+stripe.api_key = os.environ['STRIPE_KEY']
 
 @app.route('/')
 def index():
@@ -46,19 +44,26 @@ def register_process():
     password = request.form.get("password")
     payer_seller = request.form.get("payer_or_receiver")
 
-    new_user = User(fullname=fullname,
-                    email=email,
-                    password=password,
-                    payer_seller=payer_seller)
+    # check to see if user already exists. If so, update their details.
+    if User.query.filter_by(email=email).all() == []:
+        current_user = User(fullname=fullname,
+                            email=email,
+                            password=password,
+                            payer_seller=payer_seller)
+        db.session.add(current_user)
+    else:
+        current_user = User.query.filter_by(email=email).first()
+        current_user.fullname = fullname
+        current_user.password = password
+        current_user.payer_seller = payer_seller
 
-    db.session.add(new_user)
     db.session.commit()
 
     flash("User %s added." % fullname)
 
-    session["user_id"] = new_user.user_id
-    session["payer_seller"] = new_user.payer_seller
-    return redirect("/homepage/%s" % new_user.user_id)
+    session["user_id"] = current_user.user_id
+    session["payer_seller"] = current_user.payer_seller
+    return redirect("/homepage/%s" % current_user.user_id)
 
 
 @app.route('/login', methods=['GET'])
@@ -98,6 +103,7 @@ def logout():
     """Log out."""
 
     del session["user_id"]
+    del session["payer_seller"]
     flash("Logged Out.")
     return redirect("/")
 
@@ -108,7 +114,7 @@ def status(user_id):
 
     user_id = session["user_id"]
     user = User.query.get(user_id)
-    print "peyer_seller", user.payer_seller
+    print "payer_seller", user.payer_seller
 
     if user.payer_seller == "Payer":
         transaction_filter = Transaction.payer_id == user_id
@@ -127,7 +133,6 @@ def status(user_id):
 
     return render_template("userpage.html",
                            user=user,
-                           transactions=transactions,
                            completed_transactions=completed_transactions,
                            pending_transactions=pending_transactions)
 
@@ -168,8 +173,7 @@ def process_acceptance(user_id):
 def transaction_form(user_id):
 
     user = User.query.get(user_id)
-    transactions = Transaction.query.filter(Transaction.payer_id == user_id).all()
-    return render_template("transaction-form.html", user=user, transactions=transactions)
+    return render_template("transaction-form.html", user=user)
 
 
 @app.route("/terms/<int:user_id>", methods=['POST'])
@@ -239,8 +243,9 @@ def show_approved_form(transaction_id):
 
     transaction = Transaction.query.get(transaction_id)
     user_id = session["user_id"]
+    payer_seller = session["payer_seller"]
     session["transaction"] = transaction_id
-    return render_template('approved-contract.html', transaction=transaction, user_id=user_id)
+    return render_template('approved-contract.html', transaction=transaction, user_id=user_id, payer_seller=payer_seller)
 
 
 @app.route('/payment/<int:transaction_id>')
@@ -289,6 +294,7 @@ def payment_process(transaction_id):
             account_id = create_account.to_dict()['id']
             s_key = create_account.to_dict()['keys']['secret']
 
+            # Add account_id and s_key to database
             User.query.get(seller_id).account_id = account_id
             User.query.get(seller_id).secret_key = s_key
 
