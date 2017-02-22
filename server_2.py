@@ -1,5 +1,5 @@
 from jinja2 import StrictUndefined
-from flask import Flask, render_template, request, flash, redirect, session
+from flask import Flask, render_template, request, flash, redirect, session, jsonify
 from flask_debugtoolbar import DebugToolbarExtension
 from model import connect_to_db, db, User, Transaction
 import requests
@@ -176,8 +176,70 @@ def transaction_form(user_id):
     return render_template("transaction-form.html", user=user)
 
 
-@app.route("/terms/<int:user_id>", methods=['POST'])
-def approval_process(user_id):
+# @app.route("/terms/<int:user_id>", methods=['POST'])
+# def approval_process(user_id):
+#     """Process approval."""
+
+#     # Get form variables
+#     seller_email = request.form.get("seller_email")
+#     seller_name = request.form.get("seller_name")
+#     date = request.form.get("date")
+#     amount = request.form.get("amount")
+#     currency = request.form.get("currency")
+
+#     date = datetime.datetime.strptime(date, "%Y-%m-%d")
+
+#     # The recipient is added to the database
+#     # password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+#     password = 0000
+#     if User.query.filter_by(email=seller_email).all() == []:
+#         new_seller = User(fullname=seller_name, email=seller_email, password=password, payer_seller="Seller")
+#         db.session.add(new_seller)
+#     else:
+#         User.query.filter_by(email=seller_email).first().payer_seller = "Seller"
+
+#     db.session.commit()
+
+#     seller = User.query.filter_by(email=seller_email).first()
+#     seller_id = seller.user_id
+#     payer_id = session['user_id']
+#     payer = User.query.get(payer_id)
+#     payer_name = payer.fullname
+#     # An email is sent to the seller to log in and view the contract
+
+#     html = "<html><h2>Easy Pay</h2><br><p>Hi " + seller_name + ",</p><br>" + payer_name + " would like to send you money via Easy Pay. <br> Please<a href='http://localhost:5000/login'><span> log in </span></a> to view and accept the contract:<br>Password: " + str(password) + "<br><br> From the Easy Pay team!</html>"
+
+#     requests.post(
+#         "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
+#         auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
+#         data={"from": "rayhana.z@hotmail.com",
+#               "to": seller_email,
+#               "subject": "Log in to Easy Pay",
+#               "text": "Hi, Please sign into easy pay to view the contract and get paid",
+#               "html": html})
+
+#     # The new transaction is created in the database
+#     new_transaction = Transaction(payer_id=user_id,
+#                                   seller_id=seller_id,
+#                                   is_signed=False,
+#                                   payment_received=False,
+#                                   date=date,
+#                                   amount=amount,
+#                                   currency=currency,
+#                                   status="pending approval from seller")
+
+#     db.session.add(new_transaction)
+#     db.session.commit()
+
+
+#     flash("Approval prompt sent to the recipient")
+#     # return redirect("/homepage")
+#     return redirect("/homepage/%s" % payer_id)
+    # return "hello"
+
+
+@app.route("/terms.json", methods=['POST'])
+def approval_process():
     """Process approval."""
 
     # Get form variables
@@ -219,7 +281,7 @@ def approval_process(user_id):
               "html": html})
 
     # The new transaction is created in the database
-    new_transaction = Transaction(payer_id=user_id,
+    new_transaction = Transaction(payer_id=payer_id,
                                   seller_id=seller_id,
                                   is_signed=False,
                                   payment_received=False,
@@ -231,11 +293,17 @@ def approval_process(user_id):
     db.session.add(new_transaction)
     db.session.commit()
 
+    date = date.strftime('%Y-%m-%d')
 
     flash("Approval prompt sent to the recipient")
     # return redirect("/homepage")
-    return redirect("/homepage/%s" % payer_id)
-    # return "hello"
+    return jsonify({'new_transaction_id': new_transaction.transaction_id,
+                    'new_recipient': new_transaction.seller.fullname,
+                    'new_date': date,
+                    'new_amount': amount,
+                    'new_status': "pending approval from seller",
+                    'new_action': 'No action'})
+
 
 
 @app.route("/approved-form/<int:transaction_id>")

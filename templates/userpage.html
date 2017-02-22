@@ -9,7 +9,7 @@
 <br>
 <h3>Pending Transactions</h3>
 <div class="table-pending">
-    <table style="width:100%" class="transaction-table">
+    <table id='pending-table' style="width:100%" class="transaction-table">
       <tr>
         <th>Transaction ID</th>
         {% if user.payer_seller == "Payer" %}
@@ -25,6 +25,7 @@
       {% if pending_transactions != [] %}
           {% for transaction in pending_transactions %}
               <tr>
+                
                 {% if transaction.status == "pending approval from seller" and user.payer_seller == "Payer" %}
                   <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></td>
                 {% elif transaction.status == "awaiting payment from payer" or transaction.status == "payment to seller scheduled" or transaction.status == "declined by seller" %}
@@ -52,7 +53,9 @@
                     <td>No action</td>
                 {% endif %}
               </tr>
+              
           {% endfor %}
+
       {% else %}
       <div id='no_trans'>
           <td>You currently have no pending transactions!</td>
@@ -127,25 +130,25 @@
         Please fill out the details of payment below:<br><br>
         <div class="transaction-inputs details">
             <label>Payment date (seller to recieve funds)<br>
-                <input type="date" name="date">
+                <input type="date" name="date" id='date-field'>
             </label><br>
             <label>Amount:<br>
-                <input type="number" name ="amount" min="0.01" step="0.01" max="2500" value="1000">
+                <input type="number" name ="amount" min="0.01" step="0.01" max="2500" value="1000" id='amount-field'>
             </label><br>
             <label>Currency<br>
-                <input type="text" name="currency" value='USD'>
+                <input type="text" name="currency" value='USD' id='currency-field'>
             </label>    
         </div><br>
         <div class='transaction-inputs seller'>
             <label>Send for approval to:<br><br>
               <label>Recipient name<br>
-                    <input type="text" name="seller_name">
+                    <input type="text" name="seller_name" id='name-field'>
                 </label><br>
                 <label>Recipient email<br>
-                    <input type="email" name="seller_email">
+                    <input type="email" name="seller_email" id='email-field'>
                 </label>
             </label><br>
-            <input type="submit" value="Approve Form" class="button">
+            <input type="submit" value="Approve Form" id='trans-submit' class="button" data-userid="{{ user.user_id }}">
 
         </div>    
 
@@ -167,6 +170,33 @@ $(document).ready(function(){
   $('#show-contract').on('click', showContract);
 
 });
+
+
+function updateTable(data) {
+
+  $('#pending-table').append("<tr><td><a href='/approved-form/'" + data.new_transaction_id + "class='contract-button'><span>" + data.new_transaction_id + "</span></a></td><td>" + data.new_recipient + "</td><td>" + data.new_date + "</td><td>$" + data.new_amount + "</td><td>" + data.new_status + "</td><td>" + data.new_action + "</td></tr>");
+};
+
+// <a href='/approved-form/'" + data.new_transaction_id + "class='contract-button'><span>" + data.new_transaction_id + "</span></a>
+function processForm(evt) {
+  evt.preventDefault();
+
+  $("#uncomplete-contract").hide();
+
+  var formInputs = {
+        "seller_name": $("#name-field").val(),
+        "seller_email": $("#email-field").val(),
+        "date": $("#date-field").val(),
+        "amount": $("#amount-field").val(),
+        "currency": $("#currency-field").val()
+    };
+
+  var user_id = $("#trans-submit").data("userid")
+
+  $.post("/terms.json", formInputs, updateTable);
+};
+
+$("#trans-submit").on('click', processForm);
 
 </script>
 {% endblock %}
