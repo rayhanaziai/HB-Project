@@ -20,6 +20,7 @@ app.jinja_env.undefined = StrictUndefined
 # stripe.api_key = "sk_test_uXpQmqM8CWnoWDgkKQJUFcDZ"
 stripe.api_key = os.environ['STRIPE_KEY']
 
+ 
 @app.route('/')
 def index():
     """Homepage."""
@@ -112,29 +113,33 @@ def logout():
 def status(user_id):
     """Show info about user."""
 
-    user_id = session["user_id"]
-    user = User.query.get(user_id)
-    print "payer_seller", user.payer_seller
+    if user_id == session["user_id"]:
+        user_id = session["user_id"]
+        user = User.query.get(user_id)
+        print "payer_seller", user.payer_seller
 
-    if user.payer_seller == "Payer":
-        transaction_filter = Transaction.payer_id == user_id
+        if user.payer_seller == "Payer":
+            transaction_filter = Transaction.payer_id == user_id
+        else:
+            transaction_filter = Transaction.seller_id == user_id
+
+        transactions = Transaction.query.filter(transaction_filter).all()
+
+        completed_transactions = Transaction.query.filter(
+            transaction_filter, Transaction.status == "completed").all()
+
+        pending_transactions = Transaction.query.filter(
+            transaction_filter, Transaction.status != "completed").all()
+
+        print "Pending:", pending_transactions
+
+        return render_template("userpage.html",
+                               user=user,
+                               completed_transactions=completed_transactions,
+                               pending_transactions=pending_transactions)
     else:
-        transaction_filter = Transaction.seller_id == user_id
-
-    transactions = Transaction.query.filter(transaction_filter).all()
-
-    completed_transactions = Transaction.query.filter(
-        transaction_filter, Transaction.status == "completed").all()
-
-    pending_transactions = Transaction.query.filter(
-        transaction_filter, Transaction.status != "completed").all()
-
-    print "Pending:", pending_transactions
-
-    return render_template("userpage.html",
-                           user=user,
-                           completed_transactions=completed_transactions,
-                           pending_transactions=pending_transactions)
+        flash("Sorry! That's not you!")
+        return redirect("/")
 
 
 @app.route("/homepage/<int:user_id>", methods=['POST'])
@@ -150,7 +155,12 @@ def process_acceptance(user_id):
 
     if acceptance == "agree":
         current_transaction.status = "awaiting payment from payer"
-        html = "<html><h2>Easy Pay</h2><br><p>Hi " + payer_user.fullname + ",</p><br>" + seller_user.fullname + " has approved your contract. Please<a href='http://localhost:5000/login'><span> log in </span></a>to make your payment to Easy Pay.<br><br> From the Easy Pay team!</html>"
+        html = "<html><h2>Easy Pay</h2><br><p>Hi " + payer_user.fullname \
+               + ",</p><br>" + seller_user.fullname + " has approved your contract." \
+               + "Please<a href='http://localhost:5000/login'><span> log in </span>" \
+               + "</a>to make your payment to Easy Pay.<br><br> From the Easy Pay team!</html>"
+
+        # for test purposes, the same buyer email will be used. when live, use '"to": payer_user.email'
 
         requests.post(
             "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
@@ -158,7 +168,6 @@ def process_acceptance(user_id):
             data={"from": "rayhana.z@hotmail.com",
                   "to": payer_user.email,
                   "subject": "Contract approved!",
-                  "text": "Hi, Please sign into easy pay to view the contract and get paid",
                   "html": html})
 
     else:
@@ -175,67 +184,6 @@ def transaction_form(user_id):
     user = User.query.get(user_id)
     return render_template("transaction-form.html", user=user)
 
-
-# @app.route("/terms/<int:user_id>", methods=['POST'])
-# def approval_process(user_id):
-#     """Process approval."""
-
-#     # Get form variables
-#     seller_email = request.form.get("seller_email")
-#     seller_name = request.form.get("seller_name")
-#     date = request.form.get("date")
-#     amount = request.form.get("amount")
-#     currency = request.form.get("currency")
-
-#     date = datetime.datetime.strptime(date, "%Y-%m-%d")
-
-#     # The recipient is added to the database
-#     # password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
-#     password = 0000
-#     if User.query.filter_by(email=seller_email).all() == []:
-#         new_seller = User(fullname=seller_name, email=seller_email, password=password, payer_seller="Seller")
-#         db.session.add(new_seller)
-#     else:
-#         User.query.filter_by(email=seller_email).first().payer_seller = "Seller"
-
-#     db.session.commit()
-
-#     seller = User.query.filter_by(email=seller_email).first()
-#     seller_id = seller.user_id
-#     payer_id = session['user_id']
-#     payer = User.query.get(payer_id)
-#     payer_name = payer.fullname
-#     # An email is sent to the seller to log in and view the contract
-
-#     html = "<html><h2>Easy Pay</h2><br><p>Hi " + seller_name + ",</p><br>" + payer_name + " would like to send you money via Easy Pay. <br> Please<a href='http://localhost:5000/login'><span> log in </span></a> to view and accept the contract:<br>Password: " + str(password) + "<br><br> From the Easy Pay team!</html>"
-
-#     requests.post(
-#         "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
-#         auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
-#         data={"from": "rayhana.z@hotmail.com",
-#               "to": seller_email,
-#               "subject": "Log in to Easy Pay",
-#               "text": "Hi, Please sign into easy pay to view the contract and get paid",
-#               "html": html})
-
-#     # The new transaction is created in the database
-#     new_transaction = Transaction(payer_id=user_id,
-#                                   seller_id=seller_id,
-#                                   is_signed=False,
-#                                   payment_received=False,
-#                                   date=date,
-#                                   amount=amount,
-#                                   currency=currency,
-#                                   status="pending approval from seller")
-
-#     db.session.add(new_transaction)
-#     db.session.commit()
-
-
-#     flash("Approval prompt sent to the recipient")
-#     # return redirect("/homepage")
-#     return redirect("/homepage/%s" % payer_id)
-    # return "hello"
 
 
 @app.route("/terms.json", methods=['POST'])
@@ -269,15 +217,19 @@ def approval_process():
     payer_name = payer.fullname
     # An email is sent to the seller to log in and view the contract
 
-    html = "<html><h2>Easy Pay</h2><br><p>Hi " + seller_name + ",</p><br>" + payer_name + " would like to send you money via Easy Pay. <br> Please<a href='http://localhost:5000/login'><span> log in </span></a> to view and accept the contract:<br>Password: " + str(password) + "<br><br> From the Easy Pay team!</html>"
+    html = "<html><h2>Easy Pay</h2><br><p>Hi " + seller_name \
+    + ",</p><br>" + payer_name + " would like to send you money via Easy Pay. \
+    <br> Please<a href='http://localhost:5000/login'><span> log in </span></a>\
+     to view and accept the contract:<br>Password: " + str(password) \
+     + "<br><br> From the Easy Pay team!</html>"
 
+    # for test purposes, the same seller email will be used. when live, use '"to": seller_email'
     requests.post(
         "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
         auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
         data={"from": "rayhana.z@hotmail.com",
-              "to": seller_email,
+              "to": 'seller.easypay@gmail.com',
               "subject": "Log in to Easy Pay",
-              "text": "Hi, Please sign into easy pay to view the contract and get paid",
               "html": html})
 
     # The new transaction is created in the database
