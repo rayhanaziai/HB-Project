@@ -3,7 +3,7 @@
 {% block content %}
 <h2>Transaction: {{ transaction_id }}</h2>
 
-<form action="/accounts/{{ transaction_id }}" method="POST" id="accounts-form">
+<form action="/accounts/{{ transaction_id }}" method="POST" id="accounts-form" class="form">
 
   <div class="form-row">
     <label>
@@ -27,7 +27,7 @@
   </div>
 
 
-  <input type="submit" class="submit" value="Submit Account details">
+  <input type="submit" class="submit button" value="Submit Account details">
 </form>
 
 

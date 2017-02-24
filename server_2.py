@@ -17,10 +17,9 @@ app.secret_key = "MYSECRETKEY"
 # This is horrible. Fix this so that, instead, it raises an error.
 app.jinja_env.undefined = StrictUndefined
 
-# stripe.api_key = "sk_test_uXpQmqM8CWnoWDgkKQJUFcDZ"
 stripe.api_key = os.environ['STRIPE_KEY']
 
- 
+
 @app.route('/')
 def index():
     """Homepage."""
@@ -96,6 +95,7 @@ def login_process():
     session["payer_seller"] = user.payer_seller
 
     flash("Logged in")
+    print 'IP ADDRESS:', request.remote_addr
     return redirect("/homepage/%s" % user.user_id)
 
 
@@ -185,7 +185,6 @@ def transaction_form(user_id):
     return render_template("transaction-form.html", user=user)
 
 
-
 @app.route("/terms.json", methods=['POST'])
 def approval_process():
     """Process approval."""
@@ -218,10 +217,10 @@ def approval_process():
     # An email is sent to the seller to log in and view the contract
 
     html = "<html><h2>Easy Pay</h2><br><p>Hi " + seller_name \
-    + ",</p><br>" + payer_name + " would like to send you money via Easy Pay. \
-    <br> Please<a href='http://localhost:5000/login'><span> log in </span></a>\
-     to view and accept the contract:<br>Password: " + str(password) \
-     + "<br><br> From the Easy Pay team!</html>"
+        + ",</p><br>" + payer_name + " would like to send you money via Easy Pay. \
+        <br> Please<a href='http://localhost:5000/login'><span> log in </span></a>\
+        to view and accept the contract:<br>Password: " + str(password) \
+        + "<br><br> From the Easy Pay team!</html>"
 
     # for test purposes, the same seller email will be used. when live, use '"to": seller_email'
     requests.post(
@@ -255,7 +254,6 @@ def approval_process():
                     'new_amount': amount,
                     'new_status': "pending approval from seller",
                     'new_action': 'No action'})
-
 
 
 @app.route("/approved-form/<int:transaction_id>")
@@ -296,11 +294,10 @@ def payment_process(transaction_id):
         description=description
         )
 
-    charge_id = charge.to_dict()['id']
     if charge.to_dict()['paid'] != True:
         flash("Your payment has not gone through. Please try again.")
     else:
-        transfer.status = "payment to seller scheduled"
+        transfer.status = "payment from payer received"
         db.session.commit()
 
         # As soon as payment is successfull, stripe account set up for seller.
@@ -320,15 +317,7 @@ def payment_process(transaction_id):
 
             db.session.commit()
 
-            stripe.Customer.create(
-                email=seller_email,
-                api_key=s_key)
-
-            stripe.Transfer.create(
-                amount=amount,
-                currency=currency,
-                destination=account_id,
-                description=description)
+            #Send prompt email to seller for him to put in account details. 
 
         except stripe.InvalidRequestError as e:
             flash(e.message)
@@ -338,6 +327,51 @@ def payment_process(transaction_id):
     return redirect("/homepage/%s" % (payer_id))
 
 
+@app.route('/accounts/<int:transaction_id>', methods=['GET'])
+def account_form(transaction_id):
+
+    return render_template('account-details-form.html', transaction_id=transaction_id)
+
+
+@app.route('/accounts/<int:transaction_id>', methods=['POST'])
+def account_process(transaction_id):
+
+    name = request.form.get("name")
+    routing_number = request.form.get("routing-number")
+    account_number = request.form.get("account-number")
+
+    response = stripe.Token.create(
+        bank_account={
+            "country": 'US',
+            "currency": 'usd',
+            "account_holder_name": name,
+            "account_holder_type": 'individual',
+            "routing_number": routing_number,
+            "account_number": account_number
+            },
+    )
+
+    user_id = session['user_id']
+
+    seller_email = User.query.get(user_id).email
+    s_key = User.query.get(user_id).secret_key
+    account_token = response.to_dict()['id']
+    amount = Transaction.query.get(transaction_id).amount
+    currency = Transaction.query.get(transaction_id).currency
+    account_id = User.query.get(user_id).account_id
+
+    stripe.Customer.create(email=seller_email,
+                           api_key=s_key,
+                           source=account_token)
+
+    stripe.Transfer.create(amount=amount,
+                           currency=currency,
+                           destination=account_id)
+
+    Transaction.query.get(transaction_id).status = "payment to seller scheduled"
+    db.session.commit()
+
+    return redirect(("/homepage/%s" % user_id))
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the point
@@ -350,5 +384,4 @@ if __name__ == "__main__":
     DebugToolbarExtension(app)
 
     app.run(host="0.0.0.0")
-
 

@@ -9,7 +9,8 @@
 <br>
 <h3>Pending Transactions</h3>
 <div class="table-pending">
-    <table id='pending-table' style="width:100%" class="transaction-table">
+    <table id='pending-table' style="width:100%" class="transaction-table table table-striped">
+      <thead>
       <tr>
         <th>Transaction ID</th>
         {% if user.payer_seller == "Payer" %}
@@ -22,82 +23,98 @@
         <th>Status</th>
         <th>Action</th>
       </tr>
-      {% if pending_transactions != [] %}
-          {% for transaction in pending_transactions %}
-              <tr>
+      </thead>
+      <tbody>
+        {% if pending_transactions != [] %}
+            {% for transaction in pending_transactions %}
+                <tr>
+                  
+                  {% if transaction.status == "pending approval from seller" and user.payer_seller == "Payer" %}
+                    <th scope="row"><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></td>
+                  {% elif transaction.status == "awaiting payment from payer" or transaction.status == "payment to seller scheduled" or transaction.status == "declined by seller" or transaction.status == "payment from payer received" %}
+                    <th scope='row'><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></td>
+                  {% else %}
+                    <th scope="row">{{ transaction.transaction_id }}</td>
+                  {% endif %}
+                  {% if user.payer_seller == "Payer" %}
+                    <td>{{ transaction.seller.fullname}}</td> 
+                  {% elif user.payer_seller == "Seller" %}
+                    <td>{{ transaction.payer.fullname}}</td>
+                  {% endif %}
+                  <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
+                  <td>${{ transaction.amount }}</td>
+                  {% if transaction.status == "payment from payer received" and user.payer_seller == "Payer" %}
+                    <td>payment to seller scheduled</td>
+                  {% else %}
+                    <td>{{ transaction.status }}</td>
+                  {% endif %}
+                  {% if transaction.status == "pending approval from payer" and user.payer_seller == "Payer" %}
+                      <td><a href="/terms/{{ user.user_id }}" class="contract-button button"><span>View Contract</span></a></td>
+                  {% elif transaction.status == "pending approval from seller" and user.payer_seller == "Seller" %}
+                      <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button button"><span>View and approve contract</span></a></td>
+                  {% elif transaction.status == "awaiting payment from payer" and user.payer_seller == "Payer" %}
+                      <td><a href="/payment/{{ transaction.transaction_id }}" class="contract-button button"><span>Pay funds to Easy Pay</span></a></td>
+                  {% elif transaction.status == "declined by seller" and user.payer_seller == "Payer" %}
+                      <td><a href="/terms/{{ user.user_id }}" class="contract-button button"><span>Edit contract once again!</span></a></td>
+                  {% elif transaction.status == "payment from payer received" and user.payer_seller == "Seller" %}
+                      <td><a href="/accounts/{{ transaction.transaction_id }}" class="contract-button button"><span>Enter your account details</span></a></td>
+                  {% else %}
+                      <td>No action</td>
+                  {% endif %}
+                </tr>
                 
-                {% if transaction.status == "pending approval from seller" and user.payer_seller == "Payer" %}
-                  <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></td>
-                {% elif transaction.status == "awaiting payment from payer" or transaction.status == "payment to seller scheduled" or transaction.status == "declined by seller" %}
-                  <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></td>
-                {% else %}
-                  <td>{{ transaction.transaction_id }}</td>
-                {% endif %}
-                {% if user.payer_seller == "Payer" %}
-                  <td>{{ transaction.seller.fullname}}</td> 
-                {% elif user.payer_seller == "Seller" %}
-                  <td>{{ transaction.payer.fullname}}</td>
-                {% endif %}
-                <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
-                <td>${{ transaction.amount }}</td>
-                <td>{{ transaction.status }}</td>
-                {% if transaction.status == "pending approval from payer" and user.payer_seller == "Payer" %}
-                    <td><a href="/terms/{{ user.user_id }}" class="contract-button button"><span>View Contract</span></a></td>
-                {% elif transaction.status == "pending approval from seller" and user.payer_seller == "Seller" %}
-                    <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button button"><span>View and approve contract</span></a></td>
-                {% elif transaction.status == "awaiting payment from payer" and user.payer_seller == "Payer" %}
-                    <td><a href="/payment/{{ transaction.transaction_id }}" class="contract-button button"><span>Pay funds to Easy Pay</span></a></td>
-                {% elif transaction.status == "declined by seller" and user.payer_seller == "Payer" %}
-                    <td><a href="/terms/{{ user.user_id }}" class="contract-button button"><span>Edit contract once again!</span></a></td>
-                {% else %}
-                    <td>No action</td>
-                {% endif %}
-              </tr>
-              
-          {% endfor %}
+            {% endfor %}
 
-      {% else %}
-      <div id='no_trans'>
-          <td>You currently have no pending transactions!</td>
-      </div>
-      {% endif %}
-
+        {% else %}
+        <div id='no_trans'>
+            <td id="no_pending_trans">You currently have no pending transactions!</td>
+        </div>
+        {% endif %}
+      </tbody>
     </table>
 </div>
 <br><br>
 <h3>Completed Transactions</h3>
 <div class="table-completed table">
-    <table style="width:100%" class="transaction-table">
-      <tr>
-        <th>Transaction ID</th>
-        {% if user.payer_seller == "Payer" %}
-          <th>Recipient</th> 
-        {% elif user.payer_seller == "Seller" %}
-          <th>Payer</th>
+    <table style="width:100%" class="transaction-table table table-striped">
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          {% if user.payer_seller == "Payer" %}
+            <th>Recipient</th> 
+          {% elif user.payer_seller == "Seller" %}
+            <th>Payer</th>
+          {% endif %}
+          <th>Payment Date</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if completed_transactions != [] %}
+                {% for transaction in completed_transactions %}
+                    <tr>
+                      <th scope="row"><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></td>
+                      {% if user.payer_seller == "Payer" %}
+                        <td>{{ transaction.seller.fullname }}</td> 
+                      {% elif user.payer_seller == "Seller" %}
+                        <td>{{ transaction.payer.fullname }}</td>
+                      {% endif %}
+                      <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
+                      <td>${{ transaction.amount }}</td>
+                      <td>{{ transaction.status }}</td>
+                    </tr>
+                {% endfor %}
+        {% else %}
+        <div id='no_trans'>
+            <td>You have no completed transactions!</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </div>
         {% endif %}
-        <th>Payment Date</th>
-        <th>Amount</th>
-        <th>Status</th>
-      </tr>
-      {% if completed_transactions != [] %}
-              {% for transaction in completed_transactions %}
-                  <tr>
-                    <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></td>
-                    {% if user.payer_seller == "Payer" %}
-                      <td>{{ transaction.seller.fullname }}</td> 
-                    {% elif user.payer_seller == "Seller" %}
-                      <td>{{ transaction.payer.fullname }}</td>
-                    {% endif %}
-                    <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
-                    <td>${{ transaction.amount }}</td>
-                    <td>{{ transaction.status }}</td>
-                  </tr>
-              {% endfor %}
-      {% else %}
-      <div id='no_trans'>
-          <td>You have no completed transactions!</td>
-      </div>
-      {% endif %}
+      </tbody>
 
     </table>
 </div>
@@ -105,8 +122,9 @@
 <!-- <div id='create-trans'>
   <a href="/terms/{{ user.user_id}}" class="contract-button"><span>Create a transaction</span></a>
 </div> -->
-
+{% if user.payer_seller == "Payer" %}
 <button id="show-contract" class="contract-button button">Create a Transaction</button>
+{% endif %}
 
 <div id="uncomplete-contract" class="transaction-form">
     <div id="terms">
@@ -175,6 +193,7 @@ $(document).ready(function(){
 function updateTable(data) {
 
   $('#pending-table').append("<tr><td><a href='/approved-form/'" + data.new_transaction_id + "class='contract-button'><span>" + data.new_transaction_id + "</span></a></td><td>" + data.new_recipient + "</td><td>" + data.new_date + "</td><td>$" + data.new_amount + "</td><td>" + data.new_status + "</td><td>" + data.new_action + "</td></tr>");
+  $('#no-pending-trans').hide()
 };
 
 // <a href='/approved-form/'" + data.new_transaction_id + "class='contract-button'><span>" + data.new_transaction_id + "</span></a>
