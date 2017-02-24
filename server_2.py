@@ -7,6 +7,7 @@ import stripe
 import json
 import datetime
 import os
+from functions import fetch_user, user_by_email, add_user, fetch_trans
 # from sqlalchemy.exc import InvalidRequestError
 
 app = Flask(__name__)
@@ -95,7 +96,6 @@ def login_process():
     session["payer_seller"] = user.payer_seller
 
     flash("Logged in")
-    print 'IP ADDRESS:', request.remote_addr
     return redirect("/homepage/%s" % user.user_id)
 
 

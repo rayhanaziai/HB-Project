@@ -53,6 +53,7 @@ class Transaction(db.Model):
     payer = db.relationship("User", foreign_keys=[payer_id])
     seller = db.relationship("User", foreign_keys=[seller_id])
 
+
     def __repr__(self):
         """Provide helpful representation when printed."""
 
