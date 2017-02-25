@@ -46,14 +46,11 @@ def register_process():
     payer_seller = request.form.get("payer_or_receiver")
 
     # check to see if user already exists. If so, update their details.
-    if User.query.filter_by(email=email).all() == []:
-        current_user = User(fullname=fullname,
-                            email=email,
-                            password=password,
-                            payer_seller=payer_seller)
-        db.session.add(current_user)
+    if user_by_email(email) == []:
+        add_user(fullname, email, password, payer_seller)
+
     else:
-        current_user = User.query.filter_by(email=email).first()
+        current_user = user_by_email(email)
         current_user.fullname = fullname
         current_user.password = password
         current_user.payer_seller = payer_seller
@@ -82,7 +79,7 @@ def login_process():
     email = request.form["email"]
     password = request.form["password"]
 
-    user = User.query.filter_by(email=email).first()
+    user = user_by_email(email)
 
     if not user:
         flash("No such user")
@@ -149,9 +146,9 @@ def process_acceptance(user_id):
     acceptance = request.form.get("agree_or_disagree")
 
     transaction_id = session["transaction"]
-    current_transaction = Transaction.query.get(transaction_id)
-    seller_user = User.query.get(user_id)
-    payer_user = User.query.get(current_transaction.payer_id)
+    current_transaction = fetch_trans(transaction_id)
+    seller_user = fetch_user(user_id)
+    payer_user = fetch_user(current_transaction.payer_id)
 
     if acceptance == "agree":
         current_transaction.status = "awaiting payment from payer"
@@ -202,17 +199,16 @@ def approval_process():
     # password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
     password = 0000
     if User.query.filter_by(email=seller_email).all() == []:
-        new_seller = User(fullname=seller_name, email=seller_email, password=password, payer_seller="Seller")
-        db.session.add(new_seller)
+        add_user(seller_name, seller_email, password, "Seller")
     else:
-        User.query.filter_by(email=seller_email).first().payer_seller = "Seller"
+        user_by_email(seller_email).payer_seller = "Seller"
 
     db.session.commit()
 
-    seller = User.query.filter_by(email=seller_email).first()
+    seller = user_by_email(seller_email)
     seller_id = seller.user_id
     payer_id = session['user_id']
-    payer = User.query.get(payer_id)
+    payer = fetch_user(payer_id)
     payer_name = payer.fullname
     # An email is sent to the seller to log in and view the contract
 
@@ -232,17 +228,7 @@ def approval_process():
               "html": html})
 
     # The new transaction is created in the database
-    new_transaction = Transaction(payer_id=payer_id,
-                                  seller_id=seller_id,
-                                  is_signed=False,
-                                  payment_received=False,
-                                  date=date,
-                                  amount=amount,
-                                  currency=currency,
-                                  status="pending approval from seller")
-
-    db.session.add(new_transaction)
-    db.session.commit()
+    add_trans(payer_id, seller_id, False, False, date, amount, currency, "pending approval from seller")
 
     date = date.strftime('%Y-%m-%d')
 
@@ -340,25 +326,17 @@ def account_process(transaction_id):
     routing_number = request.form.get("routing-number")
     account_number = request.form.get("account-number")
 
-    response = stripe.Token.create(
-        bank_account={
-            "country": 'US',
-            "currency": 'usd',
-            "account_holder_name": name,
-            "account_holder_type": 'individual',
-            "routing_number": routing_number,
-            "account_number": account_number
-            },
-    )
+    response = create_cust_token(name, routing_number, account_number)
 
     user_id = session['user_id']
+    user = fetch_user(user_id)
 
-    seller_email = User.query.get(user_id).email
-    s_key = User.query.get(user_id).secret_key
+    seller_email = user.email
+    s_key = user.secret_key
     account_token = response.to_dict()['id']
-    amount = Transaction.query.get(transaction_id).amount
-    currency = Transaction.query.get(transaction_id).currency
-    account_id = User.query.get(user_id).account_id
+    amount = fetch_trans(transaction_id).amount
+    currency = fetch_trans(transaction_id).currency
+    account_id = user.account_id
 
     stripe.Customer.create(email=seller_email,
                            api_key=s_key,
