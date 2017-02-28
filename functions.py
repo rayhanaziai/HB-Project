@@ -13,7 +13,7 @@ def user_by_email(email):
     return User.query.filter_by(email=email).first()
 
 
-def add_user(name, email, password, payer_seller):
+def add_user(fullname, email, password, payer_seller):
     new_user = User(fullname=fullname,
                     email=email,
                     password=password,
@@ -25,7 +25,7 @@ def add_user(name, email, password, payer_seller):
 
 def fetch_trans(transaction_id):
 
-    return Transaction.query.get(user_id)
+    return Transaction.query.get(transaction_id)
 
 
 def add_trans(payer_id, seller_id, is_signed, payment_received, date, amount, currency, status):
@@ -39,9 +39,35 @@ def add_trans(payer_id, seller_id, is_signed, payment_received, date, amount, cu
                             status=status)
     db.session.add(new_trans)
     db.session.commit()
+    return new_trans
 
 
-def create_cust_token(name, routing_number, account_number):
+def new_status(transaction_id, new):
+
+    Transaction.query.get(transaction_id).status = new
+    db.session.commit()
+
+
+def create_charge(amount, token, description):
+
+    return stripe.Charge.create(
+        amount=amount,
+        currency='usd',
+        source=token,
+        description=description
+        )
+
+
+def create_seller_account(currency, email):
+
+    return stripe.Account.create(
+        country=currency,
+        managed=True,
+        email=email
+        )
+
+
+def create_seller_token(name, routing_number, account_number):
 
     response = stripe.Token.create(
         bank_account={
@@ -54,3 +80,18 @@ def create_cust_token(name, routing_number, account_number):
             },
         )
     return response
+
+
+def create_customer(email, api_key):
+
+    return stripe.Customer.create(email,
+                                  api_key)
+
+    
+def create_transfer(amount, currency, destination):
+
+    # source=account_token would be added at deployment
+    # destination is always the account_id
+    return stripe.Transfer.create(amount=amount,
+                           currency=currency,
+                           destination=destination)

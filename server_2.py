@@ -7,7 +7,7 @@ import stripe
 import json
 import datetime
 import os
-from functions import fetch_user, user_by_email, add_user, fetch_trans
+from functions import fetch_user, user_by_email, add_user, fetch_trans, add_trans, new_status, create_charge, create_seller_account, create_seller_token, create_customer, create_transfer
 # from sqlalchemy.exc import InvalidRequestError
 
 app = Flask(__name__)
@@ -19,6 +19,8 @@ app.secret_key = "MYSECRETKEY"
 app.jinja_env.undefined = StrictUndefined
 
 stripe.api_key = os.environ['STRIPE_KEY']
+
+# Use this card number for test purposes 4000 0000 0000 0077
 
 
 @app.route('/')
@@ -120,8 +122,6 @@ def status(user_id):
         else:
             transaction_filter = Transaction.seller_id == user_id
 
-        transactions = Transaction.query.filter(transaction_filter).all()
-
         completed_transactions = Transaction.query.filter(
             transaction_filter, Transaction.status == "completed").all()
 
@@ -163,7 +163,7 @@ def process_acceptance(user_id):
             "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
             auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
             data={"from": "rayhana.z@hotmail.com",
-                  "to": payer_user.email,
+                  "to": 'buyer.easypay@gmail.com',
                   "subject": "Contract approved!",
                   "html": html})
 
@@ -178,7 +178,7 @@ def process_acceptance(user_id):
 @app.route("/terms/<int:user_id>")
 def transaction_form(user_id):
 
-    user = User.query.get(user_id)
+    user = fetch_user(user_id)
     return render_template("transaction-form.html", user=user)
 
 
@@ -198,7 +198,7 @@ def approval_process():
     # The recipient is added to the database
     # password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
     password = 0000
-    if User.query.filter_by(email=seller_email).all() == []:
+    if user_by_email(seller_email) is None:
         add_user(seller_name, seller_email, password, "Seller")
     else:
         user_by_email(seller_email).payer_seller = "Seller"
@@ -228,12 +228,13 @@ def approval_process():
               "html": html})
 
     # The new transaction is created in the database
-    add_trans(payer_id, seller_id, False, False, date, amount, currency, "pending approval from seller")
+    new_transaction = add_trans(payer_id, seller_id, False, False, date, amount, currency, "pending approval from seller")
 
     date = date.strftime('%Y-%m-%d')
 
     flash("Approval prompt sent to the recipient")
     # return redirect("/homepage")
+
     return jsonify({'new_transaction_id': new_transaction.transaction_id,
                     'new_recipient': new_transaction.seller.fullname,
                     'new_date': date,
@@ -245,17 +246,21 @@ def approval_process():
 @app.route("/approved-form/<int:transaction_id>")
 def show_approved_form(transaction_id):
 
-    transaction = Transaction.query.get(transaction_id)
+    transaction = fetch_trans(transaction_id)
     user_id = session["user_id"]
     payer_seller = session["payer_seller"]
     session["transaction"] = transaction_id
-    return render_template('approved-contract.html', transaction=transaction, user_id=user_id, payer_seller=payer_seller)
+    return render_template('approved-contract.html',
+                           transaction=transaction,
+                           user_id=user_id,
+                           payer_seller=payer_seller)
 
 
 @app.route('/payment/<int:transaction_id>')
 def payment_form(transaction_id):
 
-    return render_template('payment-form.html', transaction_id=transaction_id)
+    return render_template('payment-form.html',
+                           transaction_id=transaction_id)
 
 
 @app.route('/payment/<int:transaction_id>', methods=['POST'])
@@ -263,47 +268,51 @@ def payment_process(transaction_id):
 
     token = request.form.get("stripeToken")
 
-    transfer = Transaction.query.get(transaction_id)
+    transfer = fetch_trans(transaction_id)
     payer_id = transfer.payer_id
     seller_id = transfer.seller_id
-    seller_email = User.query.get(seller_id).email
+    seller_email = transfer.seller.email
     amount = transfer.amount*100
     currency = transfer.currency
     date = transfer.date
     description = "payment from %d to %d" % (payer_id, seller_id)
 
     # Any way to check if this payment causes error?
-    charge = stripe.Charge.create(
-        amount=amount,
-        currency=currency,
-        source=token,
-        description=description
-        )
+    charge = create_charge(amount, token, description)
 
-    if charge.to_dict()['paid'] != True:
+    if charge.to_dict()['paid'] != 'True':
         flash("Your payment has not gone through. Please try again.")
     else:
-        transfer.status = "payment from payer received"
-        db.session.commit()
+        new_status(transaction_id, "payment from payer received")
 
         # As soon as payment is successfull, stripe account set up for seller.
         try:
-            create_account = stripe.Account.create(
-                country="US",
-                managed=True,
-                email=seller_email
-                )
+            new_account = create_seller_account(currency, seller_email)
 
-            account_id = create_account.to_dict()['id']
-            s_key = create_account.to_dict()['keys']['secret']
+            account_id = new_account.to_dict()['id']
+            s_key = new_account.to_dict()['keys']['secret']
 
             # Add account_id and s_key to database
-            User.query.get(seller_id).account_id = account_id
-            User.query.get(seller_id).secret_key = s_key
-
+            fetch_user(seller_id).account_id = account_id
+            fetch_user(seller_id).secret_key = s_key
             db.session.commit()
 
-            #Send prompt email to seller for him to put in account details. 
+            #Send prompt email to seller for him to put in account details.
+            html = "<html><h2>Easy Pay</h2><br><p>Hi " + transfer.seller.fullname \
+                + ",</p><br>" + transfer.payer.fullname + " has transfered the \
+                agreed amount of funds to Easy Pay. \
+                <br> To get paid on the scheduled date, please log in to your \
+                Easy Pay account and enter your account details.\
+                <br><br> From the Easy Pay team!</html>"
+
+            # for test purposes, the same seller email will be used. when live, use '"to": seller_email'
+            requests.post(
+                "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
+                auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
+                data={"from": "rayhana.z@hotmail.com",
+                      "to": 'seller.easypay@gmail.com',
+                      "subject": "Log in to Easy Pay",
+                      "html": html})
 
         except stripe.InvalidRequestError as e:
             flash(e.message)
@@ -326,7 +335,7 @@ def account_process(transaction_id):
     routing_number = request.form.get("routing-number")
     account_number = request.form.get("account-number")
 
-    response = create_cust_token(name, routing_number, account_number)
+    response = create_seller_token(name, routing_number, account_number)
 
     user_id = session['user_id']
     user = fetch_user(user_id)
@@ -338,18 +347,12 @@ def account_process(transaction_id):
     currency = fetch_trans(transaction_id).currency
     account_id = user.account_id
 
-    stripe.Customer.create(email=seller_email,
-                           api_key=s_key,
-                           source=account_token)
+    create_customer(seller_email, s_key)
+    create_transfer(amount, currency, account_id)
 
-    stripe.Transfer.create(amount=amount,
-                           currency=currency,
-                           destination=account_id)
+    new_status(transaction_id, "payment to seller scheduled")
 
-    Transaction.query.get(transaction_id).status = "payment to seller scheduled"
-    db.session.commit()
-
-    return redirect(("/homepage/%s" % user_id))
+    return redirect("/homepage/%s" % user_id)
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the point
