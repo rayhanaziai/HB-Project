@@ -1,5 +1,6 @@
 from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session, jsonify
+from flask.ext.bcrypt import Bcrypt
 from flask_debugtoolbar import DebugToolbarExtension
 from model import connect_to_db, db, User, Transaction
 import requests
@@ -7,8 +8,9 @@ import stripe
 import json
 import datetime
 import os
-from functions import fetch_user, user_by_email, add_user, fetch_trans, add_trans, new_status, create_charge, create_seller_account, create_seller_token, create_customer, create_transfer
+from functions import password_hash, check_password, fetch_user, user_by_email, add_user, fetch_trans, add_trans, new_status, create_charge, create_seller_account, create_seller_token, create_customer, create_transfer
 # from sqlalchemy.exc import InvalidRequestError
+
 
 app = Flask(__name__)
 # Required to use Flask sessions and the debug toolbar
@@ -60,6 +62,8 @@ def register_process():
     password = request.form.get("password")
     payer_seller = request.form.get("payer_or_receiver")
 
+    password = password_hash(password)
+
     # check to see if user already exists. If so, update their details.
     if user_by_email(email) is None:
         current_user = add_user(fullname, email, password, payer_seller)
@@ -100,7 +104,9 @@ def login_process():
         flash("No such user")
         return redirect("/login")
 
-    if user.password != password:
+    pw_hash = user.password
+    
+    if check_password(pw_hash, password) is False:
         flash("Incorrect password")
         return redirect("/login")
 
@@ -211,7 +217,8 @@ def approval_process(user_id):
 
     # The recipient is added to the database
     # password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
-    password = 0000
+    password = '0000'
+    password = password_hash(password)
     if user_by_email(seller_email) is None:
         add_user(seller_name, seller_email, password, "Seller")
     else:

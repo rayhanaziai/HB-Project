@@ -1,6 +1,19 @@
-from model import db, User, Transaction
+from model import db, User, Transaction, connect_to_db
 from flask_sqlalchemy import SQLAlchemy
 import stripe
+from flask import Flask
+from flask_bcrypt import Bcrypt
+
+bcrypt_app = Flask(__name__)
+bcrypt = Bcrypt(bcrypt_app)
+
+
+def password_hash(password):
+    return bcrypt.generate_password_hash(password)
+
+
+def check_password(pw_hash, password):
+    return bcrypt.check_password_hash(pw_hash, password)
 
 
 def fetch_user(user_id):
@@ -97,3 +110,13 @@ def create_transfer(amount, currency, destination):
     return stripe.Transfer.create(amount=amount,
                            currency=currency,
                            destination=destination)
+
+if __name__ == "__main__":
+    # As a convenience, if we run this module interactively, it will
+    # leave you in a state of being able to work with the database
+    # directly.
+
+    from server_2 import app
+    connect_to_db(app, "postgresql:///easypay")
+    print "Connected to DB."
+
