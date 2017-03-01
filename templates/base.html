@@ -24,7 +24,7 @@
                 <ul class="nav navbar-nav xyz">
                     <li><a href="/">Home</a></li>
                     {% if "user_id" in session %}
-                        <li><a href="/homepage/{{ session["user_id"] }}">Dashboard</a></li>
+                        <li><a href="/homepage">Dashboard</a></li>
                     {% else %}
                         <li><a href="/login">Dashboard</a></li>
                     {% endif %}

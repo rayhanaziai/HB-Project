@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# cd ~/vagrant
-# vagrant up
-# vagrant ssh
-
 now=$(date +"%T")
 touch /home/vagrant/crontest/$now
 

@@ -22,6 +22,8 @@ def add_user(fullname, email, password, payer_seller):
     db.session.add(new_user)
     db.session.commit()
 
+    return new_user
+
 
 def fetch_trans(transaction_id):
 
@@ -61,7 +63,7 @@ def create_charge(amount, token, description):
 def create_seller_account(currency, email):
 
     return stripe.Account.create(
-        country=currency,
+        country='us',
         managed=True,
         email=email
         )
@@ -84,10 +86,10 @@ def create_seller_token(name, routing_number, account_number):
 
 def create_customer(email, api_key):
 
-    return stripe.Customer.create(email,
-                                  api_key)
+    return stripe.Customer.create(email=email,
+                                  api_key=api_key)
 
-    
+
 def create_transfer(amount, currency, destination):
 
     # source=account_token would be added at deployment

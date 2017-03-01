@@ -21,6 +21,19 @@ app.jinja_env.undefined = StrictUndefined
 stripe.api_key = os.environ['STRIPE_KEY']
 
 # Use this card number for test purposes 4000 0000 0000 0077
+# Account number 000123456789
+# Routing number 110000000
+
+
+def login_required(handler):
+    def fn(*a, **kw):
+        user_id = session.get('user_id')
+        if user_id:
+            return handler(user_id, *a, **kw)
+        else:
+            return redirect('/')
+    fn.func_name = handler.func_name
+    return fn
 
 
 @app.route('/')
@@ -48,8 +61,8 @@ def register_process():
     payer_seller = request.form.get("payer_or_receiver")
 
     # check to see if user already exists. If so, update their details.
-    if user_by_email(email) == []:
-        add_user(fullname, email, password, payer_seller)
+    if user_by_email(email) is None:
+        current_user = add_user(fullname, email, password, payer_seller)
 
     else:
         current_user = user_by_email(email)
@@ -63,7 +76,7 @@ def register_process():
 
     session["user_id"] = current_user.user_id
     session["payer_seller"] = current_user.payer_seller
-    return redirect("/homepage/%s" % current_user.user_id)
+    return redirect("/homepage")
 
 
 @app.route('/login', methods=['GET'])
@@ -95,7 +108,7 @@ def login_process():
     session["payer_seller"] = user.payer_seller
 
     flash("Logged in")
-    return redirect("/homepage/%s" % user.user_id)
+    return redirect("/homepage")
 
 
 @app.route('/logout')
@@ -108,14 +121,13 @@ def logout():
     return redirect("/")
 
 
-@app.route("/homepage/<int:user_id>", methods=['GET'])
+@app.route("/homepage", methods=['GET'])
+@login_required
 def status(user_id):
     """Show info about user."""
 
     if user_id == session["user_id"]:
-        user_id = session["user_id"]
-        user = User.query.get(user_id)
-        print "payer_seller", user.payer_seller
+        user = fetch_user(user_id)
 
         if user.payer_seller == "Payer":
             transaction_filter = Transaction.payer_id == user_id
@@ -128,8 +140,6 @@ def status(user_id):
         pending_transactions = Transaction.query.filter(
             transaction_filter, Transaction.status != "completed").all()
 
-        print "Pending:", pending_transactions
-
         return render_template("userpage.html",
                                user=user,
                                completed_transactions=completed_transactions,
@@ -139,7 +149,8 @@ def status(user_id):
         return redirect("/")
 
 
-@app.route("/homepage/<int:user_id>", methods=['POST'])
+@app.route("/homepage", methods=['POST'])
+@login_required
 def process_acceptance(user_id):
     """Change status of transaction depending on seller acceptance"""
 
@@ -172,10 +183,11 @@ def process_acceptance(user_id):
     db.session.commit()
 
     # At this stage an email is sent to the buyer with prompt to pay.
-    return redirect("/homepage/%s" % user_id)
+    return redirect("/homepage")
 
 
 @app.route("/terms/<int:user_id>")
+@login_required
 def transaction_form(user_id):
 
     user = fetch_user(user_id)
@@ -183,7 +195,8 @@ def transaction_form(user_id):
 
 
 @app.route("/terms.json", methods=['POST'])
-def approval_process():
+@login_required
+def approval_process(user_id):
     """Process approval."""
 
     # Get form variables
@@ -192,7 +205,8 @@ def approval_process():
     date = request.form.get("date")
     amount = request.form.get("amount")
     currency = request.form.get("currency")
-
+    print 'DATE:', date
+    print type(date)
     date = datetime.datetime.strptime(date, "%Y-%m-%d")
 
     # The recipient is added to the database
@@ -280,7 +294,7 @@ def payment_process(transaction_id):
     # Any way to check if this payment causes error?
     charge = create_charge(amount, token, description)
 
-    if charge.to_dict()['paid'] != 'True':
+    if charge.to_dict()['paid'] is not True:
         flash("Your payment has not gone through. Please try again.")
     else:
         new_status(transaction_id, "payment from payer received")
@@ -319,7 +333,7 @@ def payment_process(transaction_id):
             # send email to seller telling them to put their details in stripe
 
     print "***the token is", token
-    return redirect("/homepage/%s" % (payer_id))
+    return redirect("/homepage")
 
 
 @app.route('/accounts/<int:transaction_id>', methods=['GET'])
@@ -346,23 +360,23 @@ def account_process(transaction_id):
     amount = fetch_trans(transaction_id).amount
     currency = fetch_trans(transaction_id).currency
     account_id = user.account_id
-
+    print "SECRET KEY:", s_key
     create_customer(seller_email, s_key)
-    create_transfer(amount, currency, account_id)
+    
 
     new_status(transaction_id, "payment to seller scheduled")
 
-    return redirect("/homepage/%s" % user_id)
+    return redirect("/homepage")
+
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the point
     # that we invoke the DebugToolbarExtension
     app.debug = True
 
-    connect_to_db(app)
+    connect_to_db(app, "postgresql:///easypay")
 
     # Use the DebugToolbar
     DebugToolbarExtension(app)
 
     app.run(host="0.0.0.0")
-

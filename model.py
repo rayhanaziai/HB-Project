@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -28,6 +30,10 @@ class User(db.Model):
 
         return "<User user_id=%s email=%s>" % (self.user_id,
                                                self.email)
+
+    @classmethod
+    def fetch(cls, user_id):
+        return cls.query.get(user_id)
 
 
 class Transaction(db.Model):
@@ -64,13 +70,63 @@ class Transaction(db.Model):
 #####################################################################
 # Helper functions
 
-def connect_to_db(app):
+def connect_to_db(app, database_uri):
     """Connect the database to our Flask app."""
 
     # Configure to use our PostgreSQL database
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///easypay'
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_uri
     db.app = app
     db.init_app(app)
+
+def example_data():
+    """Create example data to test the database"""
+
+    u1 = User(fullname="Test Person",
+              email="testperson@test.com",
+              password='0000',
+              payer_seller="Payer")
+
+    u2 = User(fullname="Test Person2",
+              email="testperson2@test.com",
+              password='0000',
+              account_id='acct_19rvdXFByeZDKBFc',
+              secret_key='sk_test_FMu4VqVNvb1oqZAWYTBh3kvj',
+              payer_seller="Seller")
+
+    u3 = User(fullname="Test Person3",
+              email="testperson3@test.com",
+              password='0000',
+              payer_seller="Payer")
+
+    u4 = User(fullname="Test Person4",
+              email="testperson4@test.com",
+              account_id='acct_19rvdXFByeZDKBFc',
+              secret_key='sk_test_FMu4VqVNvb1oqZAWYTBh3kvj',
+              password='0000',
+              payer_seller="Seller")
+
+    new_trans1 = Transaction(payer_id=1,
+                             seller_id=2,
+                             is_signed=False,
+                             payment_received=False,
+                             date=datetime(2017, 06, 06, 0, 0),
+                             amount=1000,
+                             currency='usd',
+                             status='pending approval from seller')
+
+    new_trans2 = Transaction(payer_id=3,
+                             seller_id=4,
+                             is_signed=False,
+                             payment_received=False,
+                             date=datetime(2017, 11, 11, 0, 0),
+                             amount=1000,
+                             currency='usd',
+                             status='pending approval from seller')
+
+
+    db.session.add_all([u1, u2, u3, u4, new_trans1, new_trans2])
+    db.session.commit()
+
 
 
 if __name__ == "__main__":
@@ -79,6 +135,6 @@ if __name__ == "__main__":
     # directly.
 
     from server_2 import app
-    connect_to_db(app)
+    connect_to_db(app, "postgresql:///easypay")
     print "Connected to DB."
 

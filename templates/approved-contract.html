@@ -25,7 +25,7 @@
 
     <br>
     {% if payer_seller == "Seller" and transaction.status == "pending approval from seller" %}
-        <form action="/homepage/{{ user_id }}" method="POST">
+        <form action="/homepage" method="POST">
             <label><br>
                 Agree <input type="checkbox" name="agree_or_disagree" value="agree"><br>
                 Disagree <input type="checkbox" name="agree_or_disagree" value="disagree">

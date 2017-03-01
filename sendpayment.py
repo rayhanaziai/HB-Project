@@ -1,18 +1,27 @@
 from flask import Flask
-from model import User, connect_to_db, db
+from model import User, Transaction, connect_to_db, db
 from datetime import datetime
+from functions import create_transfer, new_status
 
 
-def make_new_user():
-    """ """
-    new_user = User(fullname='crontab2',
-                    email="test@test2.com",
-                    password=0,
-                    payer_seller="Payer")
+def send_payments():
+    """Send todays payments that are due."""
 
-    db.session.add(new_user)
-    db.session.commit()
+    today = datetime.today()
+    today = today.strftime("%Y-%m-%d")
+    today = datetime.strptime(today, "%Y-%m-%d")
 
+    due_list = Transaction.query.filter_by(date=today).all()
+
+    for item in due_list:
+        if item.status == 'payment to seller scheduled':
+            account_id = item.seller.account_id
+            amount = item.amount
+            currency = item.currency
+            create_transfer(amount, currency, account_id)
+
+            new_status(item.transaction_id, "completed")
+            db.session.commit()
 
 if __name__ == "__main__":
 
@@ -21,4 +30,4 @@ if __name__ == "__main__":
     connect_to_db(app)
     print "Connected to DB."
 
-    make_new_user()
+    send_payments()
