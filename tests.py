@@ -1,13 +1,15 @@
 import unittest
 from datetime import datetime
 
-from model import db, connect_to_db, User, Transaction, example_data
+from model import db, connect_to_db, User, Transaction
+from functions import password_hash
 
 from server_2 import app
 
 ######################################################################
 # Tests that don't require the database or an active session
 ######################################################################
+
 
 class EasyPayTests(unittest.TestCase):
     """Tests for my easypay site."""
@@ -140,6 +142,7 @@ class EasyPayQueriesAndSessionTests(unittest.TestCase):
 # can actually change the database.
 ######################################################################
 
+
 class EasyPayDBTests(unittest.TestCase):
     """Tests that alter the test database."""
 
@@ -191,6 +194,57 @@ class EasyPayDBTests(unittest.TestCase):
 ######################################################################
 # Helper functions to run the tests
 ######################################################################
+
+
+def example_data():
+    """Create example data to test the database"""
+
+    password = password_hash('0000')
+
+    u1 = User(fullname="Test Person",
+              email="testperson@test.com",
+              password=password,
+              payer_seller="Payer")
+
+    u2 = User(fullname="Test Person2",
+              email="testperson2@test.com",
+              password=password,
+              account_id='acct_19rvdXFByeZDKBFc',
+              secret_key='sk_test_FMu4VqVNvb1oqZAWYTBh3kvj',
+              payer_seller="Seller")
+
+    u3 = User(fullname="Test Person3",
+              email="testperson3@test.com",
+              password=password,
+              payer_seller="Payer")
+
+    u4 = User(fullname="Test Person4",
+              email="testperson4@test.com",
+              account_id='acct_19rvdXFByeZDKBFc',
+              secret_key='sk_test_FMu4VqVNvb1oqZAWYTBh3kvj',
+              password=password,
+              payer_seller="Seller")
+
+    new_trans1 = Transaction(payer_id=1,
+                             seller_id=2,
+                             is_signed=False,
+                             payment_received=False,
+                             date=datetime(2017, 06, 06, 0, 0),
+                             amount=1000,
+                             currency='usd',
+                             status='pending approval from seller')
+
+    new_trans2 = Transaction(payer_id=3,
+                             seller_id=4,
+                             is_signed=False,
+                             payment_received=False,
+                             date=datetime(2017, 11, 11, 0, 0),
+                             amount=1000,
+                             currency='usd',
+                             status='pending approval from seller')
+
+    db.session.add_all([u1, u2, u3, u4, new_trans1, new_trans2])
+    db.session.commit()
 
 
 def add_test_user_to_session(client):

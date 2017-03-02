@@ -65,11 +65,11 @@ def register_process():
     password = password_hash(password)
 
     # check to see if user already exists. If so, update their details.
-    if user_by_email(email) is None:
-        current_user = add_user(fullname, email, password, payer_seller)
+    if User.fetch_by_email(email) is None:
+        current_user = User.add(fullname, email, password, payer_seller)
 
     else:
-        current_user = user_by_email(email)
+        current_user = User.fetch_by_email(email)
         current_user.fullname = fullname
         current_user.password = password
         current_user.payer_seller = payer_seller
@@ -80,7 +80,7 @@ def register_process():
 
     session["user_id"] = current_user.user_id
     session["payer_seller"] = current_user.payer_seller
-    return redirect("/homepage")
+    return redirect("/dashboard")
 
 
 @app.route('/login', methods=['GET'])
@@ -98,14 +98,14 @@ def login_process():
     email = request.form["email"]
     password = request.form["password"]
 
-    user = user_by_email(email)
+    user = User.fetch_by_email(email)
 
     if not user:
         flash("No such user")
         return redirect("/login")
 
     pw_hash = user.password
-    
+
     if check_password(pw_hash, password) is False:
         flash("Incorrect password")
         return redirect("/login")
@@ -114,7 +114,7 @@ def login_process():
     session["payer_seller"] = user.payer_seller
 
     flash("Logged in")
-    return redirect("/homepage")
+    return redirect("/dashboard")
 
 
 @app.route('/logout')
@@ -127,13 +127,13 @@ def logout():
     return redirect("/")
 
 
-@app.route("/homepage", methods=['GET'])
+@app.route("/dashboard", methods=['GET'])
 @login_required
 def status(user_id):
     """Show info about user."""
 
     if user_id == session["user_id"]:
-        user = fetch_user(user_id)
+        user = User.fetch(user_id)
 
         if user.payer_seller == "Payer":
             transaction_filter = Transaction.payer_id == user_id
@@ -155,7 +155,7 @@ def status(user_id):
         return redirect("/")
 
 
-@app.route("/homepage", methods=['POST'])
+@app.route("/dashboard", methods=['POST'])
 @login_required
 def process_acceptance(user_id):
     """Change status of transaction depending on seller acceptance"""
@@ -163,9 +163,9 @@ def process_acceptance(user_id):
     acceptance = request.form.get("agree_or_disagree")
 
     transaction_id = session["transaction"]
-    current_transaction = fetch_trans(transaction_id)
-    seller_user = fetch_user(user_id)
-    payer_user = fetch_user(current_transaction.payer_id)
+    current_transaction = Transaction.fetch(transaction_id)
+    seller_user = User.fetch(user_id)
+    payer_user = User.fetch(current_transaction.payer_id)
 
     if acceptance == "agree":
         current_transaction.status = "awaiting payment from payer"
@@ -185,18 +185,18 @@ def process_acceptance(user_id):
                   "html": html})
 
     else:
-        current_transaction.status = "declined by seller"
+        Transaction.new_status(transaction_id, "declined by seller")
     db.session.commit()
 
     # At this stage an email is sent to the buyer with prompt to pay.
-    return redirect("/homepage")
+    return redirect("/dashboard")
 
 
-@app.route("/terms/<int:user_id>")
+@app.route("/terms")
 @login_required
 def transaction_form(user_id):
 
-    user = fetch_user(user_id)
+    user = User.fetch(user_id)
     return render_template("transaction-form.html", user=user)
 
 
@@ -204,6 +204,7 @@ def transaction_form(user_id):
 @login_required
 def approval_process(user_id):
     """Process approval."""
+    #FIX ME
 
     # Get form variables
     seller_email = request.form.get("seller_email")
@@ -217,26 +218,26 @@ def approval_process(user_id):
 
     # The recipient is added to the database
     # password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
-    password = '0000'
-    password = password_hash(password)
-    if user_by_email(seller_email) is None:
-        add_user(seller_name, seller_email, password, "Seller")
+    original_password = '0000'
+    password = password_hash(original_password)
+    if User.fetch_by_email(seller_email) is None:
+        User.add(seller_name, seller_email, password, "Seller")
     else:
-        user_by_email(seller_email).payer_seller = "Seller"
+        User.fetch_by_email(seller_email).payer_seller = "Seller"
 
     db.session.commit()
 
-    seller = user_by_email(seller_email)
+    seller = User.fetch_by_email(seller_email)
     seller_id = seller.user_id
     payer_id = session['user_id']
-    payer = fetch_user(payer_id)
+    payer = User.fetch(payer_id)
     payer_name = payer.fullname
     # An email is sent to the seller to log in and view the contract
 
     html = "<html><h2>Easy Pay</h2><br><p>Hi " + seller_name \
         + ",</p><br>" + payer_name + " would like to send you money via Easy Pay. \
         <br> Please<a href='http://localhost:5000/login'><span> log in </span></a>\
-        to view and accept the contract:<br>Password: " + str(password) \
+        to view and accept the contract:<br>Password: " + str(original_password) \
         + "<br><br> From the Easy Pay team!</html>"
 
     # for test purposes, the same seller email will be used. when live, use '"to": seller_email'
@@ -249,12 +250,12 @@ def approval_process(user_id):
               "html": html})
 
     # The new transaction is created in the database
-    new_transaction = add_trans(payer_id, seller_id, False, False, date, amount, currency, "pending approval from seller")
+    new_transaction = Transaction.add(payer_id, seller_id, False, False, date, amount, currency, "pending approval from seller")
 
     date = date.strftime('%Y-%m-%d')
 
     flash("Approval prompt sent to the recipient")
-    # return redirect("/homepage")
+    # return redirect("/dashboard")
 
     return jsonify({'new_transaction_id': new_transaction.transaction_id,
                     'new_recipient': new_transaction.seller.fullname,
@@ -267,7 +268,7 @@ def approval_process(user_id):
 @app.route("/approved-form/<int:transaction_id>")
 def show_approved_form(transaction_id):
 
-    transaction = fetch_trans(transaction_id)
+    transaction = Transaction.fetch(transaction_id)
     user_id = session["user_id"]
     payer_seller = session["payer_seller"]
     session["transaction"] = transaction_id
@@ -289,7 +290,7 @@ def payment_process(transaction_id):
 
     token = request.form.get("stripeToken")
 
-    transfer = fetch_trans(transaction_id)
+    transfer = Transaction.fetch(transaction_id)
     payer_id = transfer.payer_id
     seller_id = transfer.seller_id
     seller_email = transfer.seller.email
@@ -304,7 +305,7 @@ def payment_process(transaction_id):
     if charge.to_dict()['paid'] is not True:
         flash("Your payment has not gone through. Please try again.")
     else:
-        new_status(transaction_id, "payment from payer received")
+        Transaction.new_status(transaction_id, "payment from payer received")
 
         # As soon as payment is successfull, stripe account set up for seller.
         try:
@@ -314,8 +315,8 @@ def payment_process(transaction_id):
             s_key = new_account.to_dict()['keys']['secret']
 
             # Add account_id and s_key to database
-            fetch_user(seller_id).account_id = account_id
-            fetch_user(seller_id).secret_key = s_key
+            User.fetch(seller_id).account_id = account_id
+            User.fetch(seller_id).secret_key = s_key
             db.session.commit()
 
             #Send prompt email to seller for him to put in account details.
@@ -340,7 +341,7 @@ def payment_process(transaction_id):
             # send email to seller telling them to put their details in stripe
 
     print "***the token is", token
-    return redirect("/homepage")
+    return redirect("/dashboard")
 
 
 @app.route('/accounts/<int:transaction_id>', methods=['GET'])
@@ -359,21 +360,19 @@ def account_process(transaction_id):
     response = create_seller_token(name, routing_number, account_number)
 
     user_id = session['user_id']
-    user = fetch_user(user_id)
+    user = User.fetch(user_id)
 
     seller_email = user.email
     s_key = user.secret_key
     account_token = response.to_dict()['id']
-    amount = fetch_trans(transaction_id).amount
-    currency = fetch_trans(transaction_id).currency
+    amount = Transaction.fetch(transaction_id).amount
+    currency = Transaction.fetch(transaction_id).currency
     account_id = user.account_id
-    print "SECRET KEY:", s_key
     create_customer(seller_email, s_key)
-    
 
-    new_status(transaction_id, "payment to seller scheduled")
+    Transaction.new_status(transaction_id, "payment to seller scheduled")
 
-    return redirect("/homepage")
+    return redirect("/dashboard")
 
 
 if __name__ == "__main__":

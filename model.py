@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -35,6 +33,23 @@ class User(db.Model):
     def fetch(cls, user_id):
         return cls.query.get(user_id)
 
+    @classmethod
+    def add(cls, fullname, email, password, payer_seller):
+        new_user = User(fullname=fullname,
+                        email=email,
+                        password=password,
+                        payer_seller=payer_seller)
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return new_user
+
+    @classmethod
+    def fetch_by_email(cls, email):
+
+        return User.query.filter_by(email=email).first()
+
 
 class Transaction(db.Model):
     """Movie on ratings website."""
@@ -59,12 +74,35 @@ class Transaction(db.Model):
     payer = db.relationship("User", foreign_keys=[payer_id])
     seller = db.relationship("User", foreign_keys=[seller_id])
 
-
     def __repr__(self):
         """Provide helpful representation when printed."""
 
         return "<Transaction transaction_id=%s is_signed=%s>" % (self.transaction_id,
                                                                  self.is_signed)
+    @classmethod
+    def fetch(cls, user_id):
+        return cls.query.get(user_id)
+
+    @classmethod
+    def add(cls, payer_id, seller_id, is_signed, payment_received, date, amount, currency, status):
+        new_trans = Transaction(payer_id=payer_id,
+                                seller_id=seller_id,
+                                is_signed=is_signed,
+                                payment_received=payment_received,
+                                date=date,
+                                amount=amount,
+                                currency=currency,
+                                status=status)
+        db.session.add(new_trans)
+        db.session.commit()
+        return new_trans
+
+    @classmethod
+    def new_status(cls, transaction_id, new):
+
+        Transaction.query.get(transaction_id).status = new
+        db.session.commit()
+
 
 
 #####################################################################
@@ -77,56 +115,6 @@ def connect_to_db(app, database_uri):
     app.config['SQLALCHEMY_DATABASE_URI'] = database_uri
     db.app = app
     db.init_app(app)
-
-def example_data():
-    """Create example data to test the database"""
-
-    u1 = User(fullname="Test Person",
-              email="testperson@test.com",
-              password='0000',
-              payer_seller="Payer")
-
-    u2 = User(fullname="Test Person2",
-              email="testperson2@test.com",
-              password='0000',
-              account_id='acct_19rvdXFByeZDKBFc',
-              secret_key='sk_test_FMu4VqVNvb1oqZAWYTBh3kvj',
-              payer_seller="Seller")
-
-    u3 = User(fullname="Test Person3",
-              email="testperson3@test.com",
-              password='0000',
-              payer_seller="Payer")
-
-    u4 = User(fullname="Test Person4",
-              email="testperson4@test.com",
-              account_id='acct_19rvdXFByeZDKBFc',
-              secret_key='sk_test_FMu4VqVNvb1oqZAWYTBh3kvj',
-              password='0000',
-              payer_seller="Seller")
-
-    new_trans1 = Transaction(payer_id=1,
-                             seller_id=2,
-                             is_signed=False,
-                             payment_received=False,
-                             date=datetime(2017, 06, 06, 0, 0),
-                             amount=1000,
-                             currency='usd',
-                             status='pending approval from seller')
-
-    new_trans2 = Transaction(payer_id=3,
-                             seller_id=4,
-                             is_signed=False,
-                             payment_received=False,
-                             date=datetime(2017, 11, 11, 0, 0),
-                             amount=1000,
-                             currency='usd',
-                             status='pending approval from seller')
-
-
-    db.session.add_all([u1, u2, u3, u4, new_trans1, new_trans2])
-    db.session.commit()
-
 
 
 if __name__ == "__main__":

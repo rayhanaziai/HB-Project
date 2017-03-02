@@ -50,22 +50,20 @@
                     <td>{{ transaction.status }}</td>
                   {% endif %}
                   {% if transaction.status == "pending approval from payer" and user.payer_seller == "Payer" %}
-                      <td><a href="/terms/{{ user.user_id }}" class="contract-button button"><span>View Contract</span></a></td>
+                      <td><a href="/terms" class="contract-button button"><span>View Contract</span></a></td>
                   {% elif transaction.status == "pending approval from seller" and user.payer_seller == "Seller" %}
                       <td><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button button"><span>View and approve contract</span></a></td>
                   {% elif transaction.status == "awaiting payment from payer" and user.payer_seller == "Payer" %}
                       <td><a href="/payment/{{ transaction.transaction_id }}" class="contract-button button"><span>Pay funds to Easy Pay</span></a></td>
                   {% elif transaction.status == "declined by seller" and user.payer_seller == "Payer" %}
-                      <td><a href="/terms/{{ user.user_id }}" class="contract-button button"><span>Edit contract once again!</span></a></td>
+                      <td><button id="try-again" class="contract-button button">Edit contract once again!</button></td>
                   {% elif transaction.status == "payment from payer received" and user.payer_seller == "Seller" %}
                       <td><a href="/accounts/{{ transaction.transaction_id }}" class="contract-button button"><span>Enter your account details</span></a></td>
                   {% else %}
                       <td>No action</td>
                   {% endif %}
                 </tr>
-                
             {% endfor %}
-
         {% else %}
         <div id='no_trans'>
             <td id="no_pending_trans">You currently have no pending transactions!</td>
@@ -126,7 +124,7 @@
 </div>
 <br>
 <!-- <div id='create-trans'>
-  <a href="/terms/{{ user.user_id}}" class="contract-button"><span>Create a transaction</span></a>
+  <a href="/terms" class="contract-button"><span>Create a transaction</span></a>
 </div> -->
 {% if user.payer_seller == "Payer" %}
 <button id="show-contract" class="contract-button button">Create a Transaction</button>
@@ -150,7 +148,7 @@
     </div>
     <br>
 
-    <form action="/terms/{{ user.user_id }}" method="POST">
+    <form action="/terms" method="POST">
         Please fill out the details of payment below:<br><br>
         <div class="transaction-inputs details">
             <label>Payment date (seller to recieve funds)<br>
@@ -184,14 +182,17 @@
 
 $("#uncomplete-contract").hide();
 
-
 function showContract(evt) {
     $("#uncomplete-contract").show();
+    $('html,body').animate({
+        scrollTop: $("#uncomplete-contract").offset().top},
+        'slow');
   };
 
 $(document).ready(function(){
 
   $('#show-contract').on('click', showContract);
+  $('#try-again').on('click', showContract);
 
 });
 
@@ -221,6 +222,8 @@ function processForm(evt) {
 };
 
 $("#trans-submit").on('click', processForm);
+
+
 
 </script>
 {% endblock %}
