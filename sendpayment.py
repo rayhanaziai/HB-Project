@@ -20,7 +20,7 @@ def send_payments():
             currency = item.currency
             create_transfer(amount, currency, account_id)
 
-            new_status(item.transaction_id, "completed")
+            Transaction.new_status(item.transaction_id, "completed")
             db.session.commit()
 
 if __name__ == "__main__":

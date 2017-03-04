@@ -8,7 +8,7 @@ import stripe
 import json
 import datetime
 import os
-from functions import password_hash, check_password, fetch_user, user_by_email, add_user, fetch_trans, add_trans, new_status, create_charge, create_seller_account, create_seller_token, create_customer, create_transfer
+from functions import password_hash, check_password, create_charge, create_seller_account, create_seller_token, create_customer, create_transfer
 # from sqlalchemy.exc import InvalidRequestError
 
 
@@ -134,6 +134,7 @@ def status(user_id):
 
     if user_id == session["user_id"]:
         user = User.fetch(user_id)
+        payer_seller = session['payer_seller']
 
         if user.payer_seller == "Payer":
             transaction_filter = Transaction.payer_id == user_id
@@ -147,6 +148,7 @@ def status(user_id):
             transaction_filter, Transaction.status != "completed").all()
 
         return render_template("userpage.html",
+                               payer_seller=payer_seller,
                                user=user,
                                completed_transactions=completed_transactions,
                                pending_transactions=pending_transactions)
@@ -373,6 +375,15 @@ def account_process(transaction_id):
     Transaction.new_status(transaction_id, "payment to seller scheduled")
 
     return redirect("/dashboard")
+
+# @app.route('/charts.json')
+# def payments_data():
+
+#     data_dict = {
+#                  "labels": 
+
+
+#     }
 
 
 if __name__ == "__main__":

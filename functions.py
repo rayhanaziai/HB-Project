@@ -16,53 +16,6 @@ def check_password(pw_hash, password):
     return bcrypt.check_password_hash(pw_hash, password)
 
 
-def fetch_user(user_id):
-
-    return User.query.get(user_id)
-
-
-def user_by_email(email):
-
-    return User.query.filter_by(email=email).first()
-
-
-def add_user(fullname, email, password, payer_seller):
-    new_user = User(fullname=fullname,
-                    email=email,
-                    password=password,
-                    payer_seller=payer_seller)
-
-    db.session.add(new_user)
-    db.session.commit()
-
-    return new_user
-
-
-def fetch_trans(transaction_id):
-
-    return Transaction.query.get(transaction_id)
-
-
-def add_trans(payer_id, seller_id, is_signed, payment_received, date, amount, currency, status):
-    new_trans = Transaction(payer_id=payer_id,
-                            seller_id=seller_id,
-                            is_signed=is_signed,
-                            payment_received=payment_received,
-                            date=date,
-                            amount=amount,
-                            currency=currency,
-                            status=status)
-    db.session.add(new_trans)
-    db.session.commit()
-    return new_trans
-
-
-def new_status(transaction_id, new):
-
-    Transaction.query.get(transaction_id).status = new
-    db.session.commit()
-
-
 def create_charge(amount, token, description):
 
     return stripe.Charge.create(

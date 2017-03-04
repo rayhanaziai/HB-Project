@@ -3,6 +3,24 @@
   color: white;
   border-radius: 0px;
 }*/
+
+#well-Payer {
+  background-color:#fffae6;
+}
+
+/*#well-Payer {
+  background-color:#F0F8FF;
+}*/
+
+
+#well-Seller {
+  background-color:#F0F8FF;
+}
+
+.progress-bar {
+  background-color:#3399ff;
+}
+
 .navbar.navbar-default {
   background-color: #3399ff;
   color: white;

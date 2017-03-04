@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <br>
-<div class="well spaced" style="width:97%">
+<div id ="well-{{ payer_seller }}" class="well spaced" style="width:97%">
   
   <h1>Hi {{ user.fullname }}!</h1>
   <h2>Welcome to your dashboard.</h2>
@@ -22,6 +22,7 @@
         <th>Payment Date</th>
         <th>Amount</th>
         <th>Status</th>
+        <th>Progress</th>
         <th>Action</th>
       </tr>
       </thead>
@@ -29,7 +30,6 @@
         {% if pending_transactions != [] %}
             {% for transaction in pending_transactions %}
                 <tr>
-                  
                   {% if transaction.status == "pending approval from seller" and user.payer_seller == "Payer" %}
                     <th scope="row"><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></td>
                   {% elif transaction.status == "awaiting payment from payer" or transaction.status == "payment to seller scheduled" or transaction.status == "declined by seller" or transaction.status == "payment from payer received" %}
@@ -49,6 +49,38 @@
                   {% else %}
                     <td>{{ transaction.status }}</td>
                   {% endif %}
+                  <td>
+                    <div class="progress">
+                      {% if transaction.status == "pending approval from payer"%}
+                      <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:0%">
+                        0%
+                      </div>
+                      {% elif transaction.status == "pending approval from seller" %}
+                      <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:25%">
+                        25%
+                      </div>
+                      {% elif transaction.status == "awaiting payment from payer" %}
+                      <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:50%">
+                        50%
+                      </div>
+                      {% elif transaction.status == "payment from payer recieved" %}
+                      <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:75%">
+                        75%
+                      </div>
+                      {% elif transaction.status == "payment to seller scheduled" %}
+                      <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:75%">
+                        75%
+                      {% elif transaction.status == "payment from payer received" and user.payer_seller == "Payer" %}
+                      <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:75%">
+                        75%
+                      </div>
+                      {% elif transaction.status == "declined by seller" %}
+                      <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:0%">
+                        0%
+                      </div>
+                      {% endif %}
+                    </div>
+                  </td>
                   {% if transaction.status == "pending approval from payer" and user.payer_seller == "Payer" %}
                       <td><a href="/terms" class="contract-button button"><span>View Contract</span></a></td>
                   {% elif transaction.status == "pending approval from seller" and user.payer_seller == "Seller" %}
@@ -92,13 +124,14 @@
           <th>Payment Date</th>
           <th>Amount</th>
           <th>Status</th>
+          <th>Progress</th>
         </tr>
       </thead>
       <tbody>
         {% if completed_transactions != [] %}
                 {% for transaction in completed_transactions %}
                     <tr>
-                      <th scope="row"><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></td>
+                      <th scope="row"><a href="/approved-form/{{ transaction.transaction_id }}" class="contract-button"><span>{{ transaction.transaction_id }}</span></a></th>
                       {% if user.payer_seller == "Payer" %}
                         <td>{{ transaction.seller.fullname }}</td> 
                       {% elif user.payer_seller == "Seller" %}
@@ -107,11 +140,19 @@
                       <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
                       <td>${{ transaction.amount }}</td>
                       <td>{{ transaction.status }}</td>
+                      <td>
+                        <div class="progress">
+                        <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:100%">
+                          100%
+                        </div>
+                        </div>
+                      </td>
                     </tr>
                 {% endfor %}
         {% else %}
         <div id='no_trans'>
             <td>You have no completed transactions!</td>
+            <td></td>
             <td></td>
             <td></td>
             <td></td>
@@ -198,7 +239,8 @@ $(document).ready(function(){
 
 function updateTable(data) {
 
-  $('#pending-table').append("<tr><td><a href='/approved-form/'" + data.new_transaction_id + "class='contract-button'><span>" + data.new_transaction_id + "</span></a></td><td>" + data.new_recipient + "</td><td>" + data.new_date + "</td><td>$" + data.new_amount + "</td><td>" + data.new_status + "</td><td>" + data.new_action + "</td></tr>");
+  $('#pending-table').append("<tr><td><a href='/approved-form/'" + data.new_transaction_id + "class='contract-button'><span>" + data.new_transaction_id + "</span></a></td><td>" + data.new_recipient + "</td><td>" + data.new_date + "</td><td>$" + data.new_amount + "</td><td>" + data.new_status + "</td><td><div class='progress'><div class='progress-bar' role='progressbar' aria-valuenow='25' aria-valuemin='0' aria-valuemax='100' style='width:25%''>25%</div></div></td><td>"+ data.new_action + "</td></tr>");
+
   $('#no-pending-trans').hide()
 };
 
