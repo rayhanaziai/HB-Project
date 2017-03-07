@@ -19,7 +19,7 @@ html, body {
 }
 
 #dashboard-title {
-    color: #e7d1bc;
+    color: #D7CEC7;
     font-family: 'Montserrat', sans-serif;
     font-weight: 900;
     font-size:40px;
@@ -30,10 +30,20 @@ html, body {
 }
 
 #dashboard-intro {
-  color: #e7d1bc;
+  color: #D7CEC7;
   font-family: 'Montserrat', sans-serif;
   font-weight: 500;
+}
 
+#payer_or_seller {
+  font-style: italic;
+}
+
+.table-title {
+  color: #D7CEC7;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  margin: 0px 0px 0px 30px;
 }
 .dashboard-container{
     background: rgba(16, 10, 4, 0.6);
@@ -49,19 +59,35 @@ html, body {
 #homepage {
   background-size: cover;
   background-image: url(/static/SplitShire_IMG_0103.jpg);
+  background-attachment: fixed;
 }
+
+.col-xs-4 {
+  text-align: center;
+}
+
+.inner-col {
+  margin: 10px;
+  border: solid;
+  border-radius:10px;
+  border-color: #D7CEC7;
+  padding:30px 0 30px 0;
+}
+
 
 h1, h2, h3, h4 {
   font-family: 'Montserrat', sans-serif;
+  color: #D7CEC7;
   font-weight: 550;
 }
 
 #main-title {
   color: #D7CEC7;
-  margin: 94px;
+  margin: 85px;
   padding: 10px 10px 90px 30px;
   text-align: center;
 }
+
 
 #homepage-button {
   font-family: 'Montserrat', sans-serif;
@@ -71,6 +97,7 @@ h1, h2, h3, h4 {
   border-radius: 10px;
   font-size: 30px;
 }
+
 
 #nav-title {
   font-family: 'Montserrat', sans-serif;
@@ -99,7 +126,8 @@ h1, h2, h3, h4 {
 }
 
 .progress-bar {
-  background-color:#3399ff;
+  background-color:#332200;
+  font-size: 10px;
 }
 
 /*.navbar.navbar-default {
@@ -177,8 +205,48 @@ section {
     box-shadow: inset 1px 1px 2px rgba(200,200,200,0.2);
 }
 
-
 .button {
+  -moz-box-shadow: 0px 1px 0px 0px #fff4b0;
+  -webkit-box-shadow: 0px 1px 0px 0px #fff4b0;
+  box-shadow: 0px 1px 0px 0px #fff4b0;
+  background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #ffd966), color-stop(1, #ffab23));
+  background:-moz-linear-gradient(top, #ffd966 5%, #ffab23 100%);
+  background:-webkit-linear-gradient(top, #ffd966 5%, #ffab23 100%);
+  background:-o-linear-gradient(top, #ffd966 5%, #ffab23 100%);
+  background:-ms-linear-gradient(top, #ffd966 5%, #ffab23 100%);
+  background:linear-gradient(to bottom, #ffd966 5%, #ffab23 100%);
+  filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffd966', endColorstr='#ffab23',GradientType=0);
+  background-color:#ffd966;
+  -moz-border-radius:6px;
+  -webkit-border-radius:6px;
+  border-radius:6px;
+  border:1px solid #8a714c;
+  display:inline-block;
+  cursor:pointer;
+  color:#5c4d37;
+  font-family: 'Montserrat', sans-serif;
+  font-size:13px;
+  font-weight:bold;
+  padding:6px 24px;
+  text-decoration:none;
+  text-shadow:0px 1px 0px #ffee66;
+}
+.button:hover {
+  background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #ffab23), color-stop(1, #ffd966));
+  background:-moz-linear-gradient(top, #ffab23 5%, #ffd966 100%);
+  background:-webkit-linear-gradient(top, #ffab23 5%, #ffd966 100%);
+  background:-o-linear-gradient(top, #ffab23 5%, #ffd966 100%);
+  background:-ms-linear-gradient(top, #ffab23 5%, #ffd966 100%);
+  background:linear-gradient(to bottom, #ffab23 5%, #ffd966 100%);
+  filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffab23', endColorstr='#ffd966',GradientType=0);
+  background-color:#ffab23;
+}
+.button:active {
+  position:relative;
+  top:1px;
+}
+
+/*.button {
   -moz-box-shadow:inset 0px 1px 0px 0px #bbdaf7;
   -webkit-box-shadow:inset 0px 1px 0px 0px #bbdaf7;
   box-shadow:inset 0px 1px 0px 0px #bbdaf7;
@@ -203,7 +271,8 @@ section {
   padding:6px 24px;
   text-decoration:none;
   text-shadow:0px 1px 0px #528ecc;
-}
+}*/
+/*
 .button:hover {
   background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #378de5), color-stop(1, #79bbff));
   background:-moz-linear-gradient(top, #378de5 5%, #79bbff 100%);
@@ -217,7 +286,7 @@ section {
 .button:active {
   position:relative;
   top:1px;
-}
+}*/
 
 .transaction-form {
     margin-left:auto;
@@ -266,9 +335,13 @@ section {
 }
 
 .table-striped > tbody > tr:nth-child(2n+1) > td, .table-striped > tbody > tr:nth-child(2n+1) > th {
-   background-color: #e7d1bc ;
+   background-color: #e7d1bc;
 }
 
 .table-striped > tbody > tr:nth-child(2n) > td, .table-striped > tbody > tr:nth-child(2n) > th {
-   background-color: #e7d1bc;
+   background-color: #A8A8A8;
+ }
+
+.transaction-table {
+  margin:auto;
 }
