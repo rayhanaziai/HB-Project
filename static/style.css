@@ -56,10 +56,28 @@ html, body {
     left: 40px;
     right: 40px;
 }
+
+.homepage-container{
+    background: rgba(16, 10, 4, 0.6);
+    height: 90%;
+    line-height: 1.3;
+    /*position: fixed;*/
+    /*height: 100%;*/
+    top: 40px;
+    bottom: 40px;
+    left: 40px;
+    right: 40px;
+}
+
 #homepage {
   background-size: cover;
   background-image: url(/static/SplitShire_IMG_0103.jpg);
   background-attachment: fixed;
+}
+
+.homepage-images {
+  height: 60px;
+  width: 60px;
 }
 
 .col-xs-4 {
