@@ -1,9 +1,64 @@
-{% extends 'base.html' %}
-{% block content %}
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EasyPay</title>
+    <!-- <link href = "bootstraplink.css" rel="stylesheet"> -->
 
-  <h1>Easy Pay</h1>
+    <link rel="stylesheet" 
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+          <link href="https://maxcdn.bootstrapcdn.com/bootstrap/
+      3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href = "/static/style.css" rel = "stylesheet">
+    <script src = "https://code.jquery.com/jquery.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.2.1/Chart.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Oswald" rel="stylesheet">
+</head>
+<body class="homepage-body">
+    
+<div id="homepage">
+  <nav class="navbar navbar-default">
+          <div class="container-fluid">
+              <div class="navbar-header">
+                  <a id="nav-title" class="navbar-brand xyz" href='/'>EASY PAY</a>
+              </div>
+              <div id="navbar">
+                  <ul class="nav navbar-nav navbar-right xyz">
+                      <li><a href="/">Home</a></li>
+                      {% if "user_id" in session %}
+                          <li><a href="/dashboard">Dashboard</a></li>
+                      {% else %}
+                          <li><a href="/login">Dashboard</a></li>
+                      {% endif %}
+                      {% if "user_id" in session %}
+                          <li><a href="/logout">Logout</a></li>
+                      {% else %}
+                          <li><a href="/login">Login</a></li>
+                      {% endif %}
+                  </ul>
+              </div>
+          </div>
+  </nav>
+
+
+  {% for flash in get_flashed_messages() %}
+    {{ flash }}
+  {% endfor %}
+
+
+  <div class="container-fluid1">
+    <div id="main-title">
+      <h1>SAFE AND SECURE PAYMENTS FOR ALL YOUR ONLINE AND GLOBAL TRANSACTIONS.</h1>
+      <br>
+      <form action="/login">
+        <input type="submit" id="homepage-button" value="Get Started!" />
+      </form>
+    </div>
+</div> 
+<br><br>
+
+<!-- <div>
   <h3>Uneasy about sending money online to a potential scammer? Not to worry! EasyPay offerss safe and secure payments for online and global transactions.</h3>
-
   <h2>How does it work?</h2>
 
   <h2>1. Create a Contract</h2>
@@ -12,12 +67,9 @@
   <h3> Edit and reach an agreement with the other trasacting party until you are both happy to sign the contract.</h3>
   <h2>3. Transaction of funds</h2>
   <h3>Send us the money. We will hold it until the agreed payemnt date and then send it to the seller. If you are being scammed, the money will be returned to you.</h3>
+</div> 
+ -->
+</body>
 
 
-
-  <form action="/login">
-    <input type="submit" class="button" value="Get Started!" />
-  </form>
-  
-
-{% endblock %}
+<!-- <div class="container-fluid" id="homepage"> -->

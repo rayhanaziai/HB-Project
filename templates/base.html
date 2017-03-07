@@ -12,25 +12,24 @@
     <link href = "/static/style.css" rel = "stylesheet">
     <script src = "https://code.jquery.com/jquery.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.2.1/Chart.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
 </head>
-<body>
+<body = class="everything-body">
     
 
 <nav class="navbar navbar-default">
         <div class="container-fluid">
             <div class="navbar-header">
-                <a class="navbar-brand xyz" href='/'>Easy Pay</a>
+                <a id="nav-title" class="navbar-brand xyz" href='/'>EASY PAY</a>
             </div>
             <div id="navbar">
-                <ul class="nav navbar-nav xyz">
+                <ul class="nav navbar-nav navbar-right xyz">
                     <li><a href="/">Home</a></li>
                     {% if "user_id" in session %}
                         <li><a href="/dashboard">Dashboard</a></li>
                     {% else %}
                         <li><a href="/login">Dashboard</a></li>
                     {% endif %}
-                </ul>
-                <ul class="nav navbar-nav navbar-right xyz">
                     {% if "user_id" in session %}
                         <li><a href="/logout">Logout</a></li>
                     {% else %}
@@ -50,8 +49,7 @@
     Put your body here.
 {% endblock %}
 
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/
-      3.3.7/js/bootstrap.min.js"></script>
+
 
 </body>
 </html>
