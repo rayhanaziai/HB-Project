@@ -11,7 +11,7 @@
                     <div id="dashboard-intro">
                       <h1>Hi {{ user.fullname }}!</h1>
                       <h2>Welcome to your dashboard.</h2>
-                      <h3 id="payer_or_seller">({{ user.payer_seller }})</h3>
+                      <h3 id="{{ user.payer_seller }}">({{ user.payer_seller }})</h3>
                     </div>
                     <br>
                     </div>
@@ -79,7 +79,7 @@
                                           <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:75%">
                                             75%
                                           </div>
-                                          {% elif transaction.status == "payment from payer received" and user.payer_seller == "Payer" %}
+                                          {% elif transaction.status == "payment from payer received" %}
                                           <div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width:75%">
                                             75%
                                           </div>
@@ -113,6 +113,8 @@
                                 <td></td>
                                 <td></td>
                                 <td></td>
+                                <td></td>
+
                             </div>
                             {% endif %}
                           </tbody>
@@ -177,7 +179,7 @@
                       <a href="/terms" class="contract-button"><span>Create a transaction</span></a>
                     </div> -->
                     {% if user.payer_seller == "Payer" %}
-                    <button id="show-contract" class="contract-button button">Create a Transaction</button>
+                    <button id="show-contract" class="button">Create a Transaction</button>
                     {% endif %}
                     <br><br>
                 </div>
@@ -233,7 +235,7 @@
     </form>
 
 </div>
-
+<br><br><br>
 <script type="text/javascript">
 
 $("#uncomplete-contract").hide();
