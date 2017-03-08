@@ -25,7 +25,7 @@ Users can sign in and log in to Easy Pay to get started.
 When a payer goes to their dashboard they can see both past and present transactions.
 <img width="1274" alt="screen shot 2017-03-08 at 12 55 05" src="https://cloud.githubusercontent.com/assets/24640757/23724007/194c4ec8-0400-11e7-9f7a-204978fb842f.png">
 
-To create a new transaction they click on the 'New Transaction' button and will be shown a contract. The payer will enter the payment date and amount and also the recipients name and email address. An email prompt is sent using Mailgun to the seller who will be prompted to log into Easy Pay with their new details and view and approve the contract. 
+To create a new transaction they click on the 'Create a Transaction' button and will be shown a contract. The payer will enter the payment date and amount and also the recipients name and email address. An email prompt is sent using Mailgun to the seller who will be prompted to log into Easy Pay with their new details and view and approve the contract. 
 <img width="1274" alt="screen shot 2017-03-08 at 12 55 27" src="https://cloud.githubusercontent.com/assets/24640757/23724005/194b7c14-0400-11e7-8bcc-d19383fb6caf.png">
 
 When the seller goes onto their dashboard they are given the option to view and approve or decline the contract. 
