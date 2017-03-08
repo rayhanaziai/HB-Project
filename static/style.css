@@ -59,15 +59,16 @@ html, body {
 
 .homepage-container{
     background: rgba(16, 10, 4, 0.6);
-    height: 100%;
+    /*height: 100%;*/
     /*background-size: cover;*/
     line-height: 1.3;
     /*position: fixed;*/
-    /*height: 100%;*/
-    top: 40px;
-    bottom: 40px;
-    left: 40px;
-    right: 40px;
+    position: absolute;
+    height: 100%;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
 }
 
 /*#homepage {
@@ -80,6 +81,7 @@ html, body {
   background-size: cover;
   background-image: url(/static/SplitShire_IMG_0103.jpg);
   background-attachment: fixed;
+  position: relative;
 }
 
 .homepage-images {
