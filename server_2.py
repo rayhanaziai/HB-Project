@@ -1,16 +1,12 @@
 from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session, jsonify
-from flask.ext.bcrypt import Bcrypt
 from flask_debugtoolbar import DebugToolbarExtension
 from model import connect_to_db, db, User, Transaction
+from functions import password_hash, check_password, create_charge, create_seller_account, create_seller_token, create_customer
 import requests
 import stripe
-import json
 import datetime
 import os
-from functions import password_hash, check_password, create_charge, create_seller_account, create_seller_token, create_customer, create_transfer
-# from sqlalchemy.exc import InvalidRequestError
-
 
 app = Flask(__name__)
 # Required to use Flask sessions and the debug toolbar
@@ -21,6 +17,7 @@ app.secret_key = "MYSECRETKEY"
 app.jinja_env.undefined = StrictUndefined
 
 stripe.api_key = os.environ['STRIPE_KEY']
+mailgun_key = os.environ['MAILGUN_KEY']
 
 # Use this card number for test purposes 4000 0000 0000 0077
 # Account number 000123456789
@@ -245,7 +242,7 @@ def approval_process(user_id):
     # for test purposes, the same seller email will be used. when live, use '"to": seller_email'
     requests.post(
         "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
-        auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
+        auth=('api', mailgun_key),
         data={"from": "rayhana.z@hotmail.com",
               "to": 'seller.easypay@gmail.com',
               "subject": "Log in to Easy Pay",
@@ -332,7 +329,7 @@ def payment_process(transaction_id):
             # for test purposes, the same seller email will be used. when live, use '"to": seller_email'
             requests.post(
                 "https://api.mailgun.net/v3/sandbox9ba71cb39eb046f798ee4676ad972946.mailgun.org/messages",
-                auth=('api', 'key-fcaee27772f7acfa5b4246ae675248a0'),
+                auth=('api', mailgun_key),
                 data={"from": "rayhana.z@hotmail.com",
                       "to": 'seller.easypay@gmail.com',
                       "subject": "Log in to Easy Pay",
@@ -375,16 +372,6 @@ def account_process(transaction_id):
     Transaction.new_status(transaction_id, "payment to seller scheduled")
 
     return redirect("/dashboard")
-
-# @app.route('/charts.json')
-# def payments_data():
-
-#     data_dict = {
-#                  "labels": 
-
-
-#     }
-
 
 if __name__ == "__main__":
     # We have to set debug=True here, since it has to be True at the point
