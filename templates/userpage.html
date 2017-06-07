@@ -106,16 +106,16 @@
                                     </tr>
                                 {% endfor %}
                             {% else %}
-                            <div id='no_trans'>
-                                <td id="no_pending_trans">You currently have no pending transactions!</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <tr id='no_trans'>
+                                    <td id="no_pending_trans">You currently have no pending transactions!</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
 
-                            </div>
+                                </tr>
                             {% endif %}
                           </tbody>
                         </table>
@@ -161,7 +161,7 @@
                                         </tr>
                                     {% endfor %}
                             {% else %}
-                            <div id='no_trans'>
+                            <div id='no_completed_trans'>
                                 <td>You have no completed transactions!</td>
                                 <td></td>
                                 <td></td>
@@ -255,10 +255,10 @@ $(document).ready(function(){
 });
 
 function updateTable(data) {
+  $('#no_trans').remove();
 
   $('#pending-table').append("<tr><td><a href='/approved-form/'" + data.new_transaction_id + "class='contract-button'><span>" + data.new_transaction_id + "</span></a></td><td>" + data.new_recipient + "</td><td>" + data.new_date + "</td><td>$" + data.new_amount + "</td><td>" + data.new_status + "</td><td><div class='progress'><div class='progress-bar' role='progressbar' aria-valuenow='25' aria-valuemin='0' aria-valuemax='100' style='width:25%''>25%</div></div></td><td>"+ data.new_action + "</td></tr>");
 
-  $('#no-pending-trans').hide()
 };
 
 // <a href='/approved-form/'" + data.new_transaction_id + "class='contract-button'><span>" + data.new_transaction_id + "</span></a>
@@ -266,6 +266,8 @@ function processForm(evt) {
   evt.preventDefault();
 
   $("#uncomplete-contract").hide();
+  // $('#no_pending_trans').hide();
+  // $('#no_trans').remove();
 
   var formInputs = {
         "seller_name": $("#name-field").val(),
