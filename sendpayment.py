@@ -25,7 +25,7 @@ def send_payments():
 
 if __name__ == "__main__":
 
-    from server_2 import app
+    from server import app
     # app = Flask(__name__)
     connect_to_db(app)
     print "Connected to DB."

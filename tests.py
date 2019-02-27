@@ -4,7 +4,7 @@ from datetime import datetime
 from model import db, connect_to_db, User, Transaction
 from functions import password_hash
 
-from server_2 import app
+from server import app
 
 ######################################################################
 # Tests that don't require the database or an active session

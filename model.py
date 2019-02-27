@@ -122,7 +122,7 @@ if __name__ == "__main__":
     # leave you in a state of being able to work with the database
     # directly.
 
-    from server_2 import app
+    from server import app
     connect_to_db(app, "postgresql:///easypay")
     print "Connected to DB."
 

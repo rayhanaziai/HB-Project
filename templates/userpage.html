@@ -235,6 +235,7 @@
     </form>
 
 </div>
+<div id='Test'>Test</div>
 <br><br><br>
 <script type="text/javascript">
 
@@ -283,6 +284,13 @@ function processForm(evt) {
 };
 
 $("#trans-submit").on('click', processForm);
+
+$(document).ready(function() {
+  var f = document.getElementById('Test');
+  setInterval(function() {
+    f.style.display = (f.style.display == 'none' ? '' : 'none');
+  }, 1000);
+});
 
 
 
